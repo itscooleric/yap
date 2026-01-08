@@ -1,0 +1,21 @@
+# Local development override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+
+services:
+  whisper-asr:
+    ports:
+      - "9000:9000"
+    labels: []
+    networks:
+      - default
+
+  asr-ui:
+    ports:
+      - "8080:80"
+    labels: []
+    networks:
+      - default
+
+networks:
+  caddy:
+    external: false

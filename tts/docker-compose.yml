@@ -1,0 +1,37 @@
+services:
+  # Piper TTS Backend
+  piper-tts:
+    build: .
+    container_name: quickyap-piper-tts
+    restart: unless-stopped
+    volumes:
+      - ${PIPER_MODELS_PATH:-/srv/piper/models}:/models:ro
+    environment:
+      - PIPER_MODELS_PATH=/models
+    networks:
+      - caddy
+    labels:
+      caddy: ${TTS_DOMAIN:-tts.localhost}
+      caddy.@api.path: /health /voices /synthesize/*
+      caddy.handle_0: "@api"
+      caddy.handle_0.reverse_proxy: "{{upstreams 5000}}"
+
+  # Static UI served by nginx
+  tts-ui:
+    image: nginx:alpine
+    container_name: quickyap-tts-ui
+    restart: unless-stopped
+    volumes:
+      - ./ui:/usr/share/nginx/html:ro
+    networks:
+      - caddy
+    labels:
+      caddy: ${TTS_DOMAIN:-tts.localhost}
+      caddy.handle_1: ""
+      caddy.handle_1.root: "* /usr/share/nginx/html"
+      caddy.handle_1.file_server: ""
+      caddy.handle_1.reverse_proxy: "{{upstreams 80}}"
+
+networks:
+  caddy:
+    external: true

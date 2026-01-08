@@ -1,0 +1,36 @@
+# Environment files with secrets
+.env
+*.env.local
+
+# Docker volumes
+/srv/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+.venv/
+
+# Node (if any tooling is added)
+node_modules/
