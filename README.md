@@ -53,74 +53,149 @@ Both tools run as Docker containers with a terminal-style dark UI, designed for 
 
 ## Quick Start
 
+QuickYap supports **two run modes**:
+1. **Production mode** (default): Uses Caddy reverse proxy with automatic HTTPS
+2. **Local mode**: Direct port access for testing without Caddy
+
 ### Prerequisites
 
 - Docker with Compose V2
 - NVIDIA GPU with CUDA drivers (for ASR)
-- [caddy-docker-proxy](https://github.com/lucaslorentz/caddy-docker-proxy) for reverse proxy
+- For production mode: [caddy-docker-proxy](https://github.com/lucaslorentz/caddy-docker-proxy)
 
-### 1. Clone the Repository
+### Setup
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/itscooleric/quick-yap.git
 cd quick-yap
 ```
 
-### 2. Create Docker Network
+#### 2. Configure Environment
+
+Copy the root environment example:
 
 ```bash
-docker network create caddy
+cp .env.example .env
 ```
 
-### 3. Setup ASR (Quick Mic)
+Edit `.env` to customize your setup:
 
 ```bash
-cd asr
-cp .env.example .env
-# Edit .env to configure domain and paths
-sudo mkdir -p /srv/whisper-asr/models
-docker compose up -d
+# ASR Configuration
+QUICKYAP_ASR_DOMAIN=asr.yourdomain.com
+QUICKYAP_ASR_MODELS_DIR=/srv/whisper-asr/models
+QUICKYAP_ASR_MODEL=base
+
+# TTS Configuration  
+QUICKYAP_TTS_DOMAIN=tts.yourdomain.com
+QUICKYAP_TTS_MODELS_DIR=/srv/piper/models
+
+# Network (for Caddy mode)
+QUICKYAP_CADDY_NETWORK=caddy
 ```
 
-### 4. Setup TTS (Quick TTS)
+#### 3. Create Model Directories
 
 ```bash
-cd tts
-cp .env.example .env
-# Edit .env to configure domain and paths
-sudo mkdir -p /srv/piper/models
+sudo mkdir -p $QUICKYAP_ASR_MODELS_DIR
+sudo mkdir -p $QUICKYAP_TTS_MODELS_DIR
+```
 
-# Download a voice (example: British English Cori)
-cd /srv/piper/models
+#### 4. Download TTS Voice Models
+
+The TTS service requires voice models to work. Download at least one:
+
+```bash
+cd $QUICKYAP_TTS_MODELS_DIR
+
+# Recommended: British English Cori (high quality)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/high/en_GB-cori-high.onnx
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/high/en_GB-cori-high.onnx.json
 
-cd /path/to/quick-yap/tts
-docker compose up -d --build
+# Set permissions
+sudo chmod 644 *.onnx *.json
 ```
 
-### 5. Access the UIs
+Or use the Makefile helper:
 
-Configure your DNS or hosts file to point to your server:
+```bash
+make tts-model-cori  # Shows download commands
+```
 
+**Note**: TTS will start even without models, but will show a clear warning message. See [Troubleshooting](#troubleshooting) for details.
+
+#### 5. Start Services
+
+**Production Mode (with Caddy):**
+
+```bash
+# Create Caddy network (if not exists)
+docker network create caddy
+
+# Start ASR
+cd asr && docker compose up -d
+
+# Start TTS
+cd tts && docker compose up -d --build
+```
+
+Or use the Makefile:
+
+```bash
+make asr-up
+make tts-up
+```
+
+Access via configured domains:
 - ASR: `https://asr.yourdomain.com`
 - TTS: `https://tts.yourdomain.com`
 
-## Local Development (Without Caddy)
-
-For testing without the Caddy reverse proxy:
+**Local Mode (without Caddy):**
 
 ```bash
-# ASR
-cd asr
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
-# UI: http://localhost:8080, API: http://localhost:9000
+# ASR on localhost:8080 (API on :9000)
+cd asr && docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 
-# TTS
-cd tts
-docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
-# UI: http://localhost:8081, API: http://localhost:5000
+# TTS on localhost:8081 (API on :5000)
+cd tts && docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
+
+Access via localhost:
+- ASR: `http://localhost:8080`
+- TTS: `http://localhost:8081`
+
+## Configuration
+
+### Environment Variables
+
+QuickYap uses a hierarchical configuration system:
+
+1. **Root `.env`** (optional) - Sets global defaults using `QUICKYAP_*` prefixed variables
+2. **Service-specific `.env`** in `asr/` and `tts/` - Can override root values
+
+Root variables (in `.env.example`):
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `QUICKYAP_ASR_DOMAIN` | ASR domain for Caddy | `asr.example.internal` |
+| `QUICKYAP_ASR_MODELS_DIR` | Host path for Whisper models | `/srv/whisper-asr/models` |
+| `QUICKYAP_ASR_MODEL` | Whisper model size | `base` |
+| `QUICKYAP_ASR_ENGINE` | ASR engine | `openai_whisper` |
+| `QUICKYAP_TTS_DOMAIN` | TTS domain for Caddy | `tts.example.internal` |
+| `QUICKYAP_TTS_MODELS_DIR` | Host path for Piper voices | `/srv/piper/models` |
+| `QUICKYAP_CADDY_NETWORK` | Docker network name | `caddy` |
+
+### Whisper Model Sizes
+
+| Model | Parameters | VRAM | Speed | Quality |
+|-------|------------|------|-------|---------|
+| tiny | 39M | ~1GB | Fastest | Low |
+| base | 74M | ~1GB | Fast | Good |
+| small | 244M | ~2GB | Moderate | Better |
+| medium | 769M | ~5GB | Slow | High |
+| large-v2/v3 | 1550M | ~10GB | Slowest | Highest |
 
 ## Repository Structure
 
@@ -147,28 +222,35 @@ quick-yap/
 ├── docs/
 │   └── images/
 │       └── README.md
+├── .env.example           # Root configuration template
 ├── .gitignore
 ├── LICENSE
+├── Makefile              # Helper commands
 └── README.md
 ```
 
-## Configuration
+## Makefile Helpers
 
-### ASR Environment Variables
+Common commands for managing QuickYap services:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ASR_DOMAIN` | Domain for Caddy routing | `asr.localhost` |
-| `WHISPER_MODELS_PATH` | Host path for model cache | `/srv/whisper-asr/models` |
-| `ASR_MODEL` | Whisper model (tiny/base/small/medium/large-v2/large-v3) | `base` |
-| `ASR_ENGINE` | ASR engine | `openai_whisper` |
+```bash
+make help           # Show all available commands
 
-### TTS Environment Variables
+# ASR
+make asr-up         # Start ASR services
+make asr-down       # Stop ASR services
+make asr-logs       # View ASR logs
+make asr-restart    # Restart ASR
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `TTS_DOMAIN` | Domain for Caddy routing | `tts.localhost` |
-| `PIPER_MODELS_PATH` | Host path for voice models | `/srv/piper/models` |
+# TTS
+make tts-up         # Start TTS services
+make tts-down       # Stop TTS services
+make tts-logs       # View TTS logs
+make tts-restart    # Restart TTS
+make tts-health     # Check TTS health endpoint
+make tts-voices     # List available voices
+make tts-model-cori # Show commands to download Cori voice
+```
 
 ## Security Notes
 
@@ -199,6 +281,59 @@ asr.yourdomain.com {
 
 ## Troubleshooting
 
+### TTS Issues
+
+**No voices available / TTS won't synthesize**
+
+The TTS backend will start successfully even without voice models, but it will display a prominent warning in the logs. To fix:
+
+1. Check the TTS logs:
+   ```bash
+   make tts-logs
+   # or
+   cd tts && docker compose logs -f
+   ```
+
+2. If you see "NO VOICES FOUND" warning, download voice models:
+   ```bash
+   make tts-model-cori  # Shows commands to download
+   ```
+
+3. Verify the models are in the correct directory:
+   ```bash
+   ls -la $QUICKYAP_TTS_MODELS_DIR
+   # Should show .onnx and .onnx.json files
+   ```
+
+4. Check the health endpoint:
+   ```bash
+   # Local mode:
+   curl http://localhost:5000/health
+   # Should return: {"status":"ok","voices_count":1}
+   
+   # Caddy mode:
+   curl -k https://$QUICKYAP_TTS_DOMAIN/health
+   ```
+
+5. List available voices:
+   ```bash
+   # Local mode:
+   curl http://localhost:5000/voices
+   
+   # Caddy mode:
+   curl -k https://$QUICKYAP_TTS_DOMAIN/voices
+   ```
+
+**Voice files present but not detected**
+- Ensure both `.onnx` AND `.onnx.json` files exist for each voice
+- Check file permissions: `sudo chmod 644 *.onnx *.json`
+- Verify the `PIPER_MODELS_PATH` environment variable matches your directory
+- Restart the TTS service: `make tts-restart`
+
+**Synthesis slow**
+- Use medium quality voices for faster synthesis
+- Longer texts take more time to process
+
 ### ASR Issues
 
 **GPU not detected**
@@ -208,6 +343,11 @@ nvidia-smi
 docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
 ```
 
+If GPU isn't detected, ensure:
+- NVIDIA drivers are installed
+- NVIDIA Container Toolkit is installed
+- Docker has been restarted after toolkit installation
+
 **Microphone not working**
 - Check browser permissions
 - Ensure HTTPS or localhost (required for `getUserMedia`)
@@ -215,29 +355,33 @@ docker run --rm --gpus all nvidia/cuda:11.0-base nvidia-smi
 
 **Model download slow**
 - First startup downloads the Whisper model
-- Models are cached for subsequent runs
-
-### TTS Issues
-
-**No voices available**
-- Ensure voice files (`.onnx` + `.onnx.json`) are in the models directory
-- Check file permissions
-
-**Synthesis slow**
-- Use medium quality voices for faster synthesis
-- Longer texts take more time
+- Models are cached in `$QUICKYAP_ASR_MODELS_DIR` for subsequent runs
+- Larger models (medium, large) take longer to download
 
 ### General Issues
 
 **Container won't start**
 ```bash
+# Check logs
 docker compose logs -f
+
+# Check container status
+docker ps -a
 ```
 
-**Network issues**
+**Network issues (Caddy mode)**
 ```bash
+# Verify Caddy network exists
 docker network inspect caddy
+
+# If network doesn't exist, create it
+docker network create caddy
 ```
+
+**Environment variables not being used**
+- Ensure `.env` file exists in the appropriate directory (root, asr/, or tts/)
+- Check for typos in variable names
+- Restart containers after changing `.env`: `make tts-restart` or `make asr-restart`
 
 ## Contributing
 

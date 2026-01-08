@@ -9,13 +9,11 @@ services:
       - ASR_ENGINE=${ASR_ENGINE:-openai_whisper}
     volumes:
       - ${WHISPER_MODELS_PATH:-/srv/whisper-asr/models}:/root/.cache/whisper
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # GPU configuration compatible with docker compose
+    device_requests:
+      - driver: nvidia
+        count: all
+        capabilities: [gpu]
     networks:
       - caddy
     labels:
@@ -42,4 +40,5 @@ services:
 
 networks:
   caddy:
+    name: ${CADDY_NETWORK:-caddy}
     external: true

@@ -63,21 +63,52 @@ Text-to-speech synthesis using Piper TTS.
 
 Piper voices can be downloaded from the [Piper releases page](https://github.com/rhasspy/piper/blob/master/VOICES.md).
 
+**Important**: The TTS service will start even without voice models installed, but it will display a clear warning in the logs and the `/health` endpoint will show `voices_count: 0`. You must download at least one voice for the service to work.
+
 ### Recommended: Cori (British English)
 
 The default voice selection prefers `en_GB-cori-high`. Download it:
 
 ```bash
-cd /srv/piper/models
+# Navigate to models directory
+cd ${QUICKYAP_TTS_MODELS_DIR:-/srv/piper/models}
 
-# Download Cori high quality
+# Download Cori high quality (recommended)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/high/en_GB-cori-high.onnx
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/high/en_GB-cori-high.onnx.json
 
-# Or medium quality (smaller, faster)
+# OR download Cori medium quality (smaller, faster)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/medium/en_GB-cori-medium.onnx
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/medium/en_GB-cori-medium.onnx.json
+
+# Set permissions
+sudo chmod 644 *.onnx *.json
 ```
+
+**Note**: Files must be named exactly as shown (e.g., `en_GB-cori-high.onnx`, not `cori-high.onnx`).
+
+### Verify Installation
+
+After downloading models, verify they are detected:
+
+```bash
+# Check health endpoint (local mode)
+curl http://localhost:5000/health
+# Expected: {"status":"ok","voices_count":1}
+
+# List voices (local mode)
+curl http://localhost:5000/voices
+# Expected: ["en_GB-cori-high"]
+
+# For Caddy mode, use your domain:
+curl -k https://$QUICKYAP_TTS_DOMAIN/voices
+```
+
+If `voices_count` is 0, check:
+- Both `.onnx` and `.onnx.json` files exist
+- File names match exactly (case-sensitive)
+- File permissions are correct
+- Restart the container: `docker compose restart` or `make tts-restart`
 
 ### Other Popular Voices
 

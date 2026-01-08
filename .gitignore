@@ -5,6 +5,15 @@
 # Docker volumes
 /srv/
 
+# Downloaded models
+*.onnx
+*.onnx.json
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
 # OS files
 .DS_Store
 Thumbs.db

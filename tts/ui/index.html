@@ -504,9 +504,14 @@
         return;
       }
       
-      // Find default voice (prefer en_GB-cori-high, then en_GB-cori-medium)
+      // Try to restore last selected voice from localStorage
+      const savedVoice = localStorage.getItem('quickyap-tts-voice');
+      
+      // Find default voice (prefer saved, then en_GB-cori-high, then en_GB-cori-medium)
       let defaultVoice = voices[0];
-      if (voices.includes('en_GB-cori-high')) {
+      if (savedVoice && voices.includes(savedVoice)) {
+        defaultVoice = savedVoice;
+      } else if (voices.includes('en_GB-cori-high')) {
         defaultVoice = 'en_GB-cori-high';
       } else if (voices.includes('en_GB-cori-medium')) {
         defaultVoice = 'en_GB-cori-medium';
@@ -558,7 +563,13 @@
     });
 
     // Voice selection
-    voiceSelect.addEventListener('change', updateSynthesizeButton);
+    voiceSelect.addEventListener('change', () => {
+      // Save selected voice to localStorage
+      if (voiceSelect.value) {
+        localStorage.setItem('quickyap-tts-voice', voiceSelect.value);
+      }
+      updateSynthesizeButton();
+    });
 
     // Clear text
     clearBtn.addEventListener('click', () => {
