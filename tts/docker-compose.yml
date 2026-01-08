@@ -10,11 +10,17 @@ services:
       - PIPER_MODELS_PATH=/models
     networks:
       - caddy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     labels:
       caddy: ${TTS_DOMAIN:-tts.localhost}
-      caddy.@api.path: /health /voices /synthesize/*
-      caddy.handle_0: "@api"
-      caddy.handle_0.reverse_proxy: "{{upstreams 5000}}"
+      caddy.1_@api.path: /health /voices /docs /docs/* /openapi.json /redoc /redoc/* /synthesize/*
+      caddy.2_handle: "@api"
+      caddy.2_handle.reverse_proxy: piper-tts:5000
 
   # Static UI served by nginx
   tts-ui:
@@ -27,10 +33,8 @@ services:
       - caddy
     labels:
       caddy: ${TTS_DOMAIN:-tts.localhost}
-      caddy.handle_1: ""
-      caddy.handle_1.root: "* /usr/share/nginx/html"
-      caddy.handle_1.file_server: ""
-      caddy.handle_1.reverse_proxy: "{{upstreams 80}}"
+      caddy.3_handle: "/*"
+      caddy.3_handle.reverse_proxy: "{{upstreams 80}}"
 
 networks:
   caddy:

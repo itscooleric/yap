@@ -305,33 +305,41 @@ The TTS backend will start successfully even without voice models, but it will d
    # Should show .onnx and .onnx.json files
    ```
 
-4. Check the health endpoint:
+4. Test API endpoints (Caddy mode):
    ```bash
-   # Local mode:
-   curl http://localhost:5000/health
+   # Check health endpoint
+   curl -k https://$YAP_TTS_DOMAIN/health
    # Should return: {"status":"ok","voices_count":1}
    
-   # Caddy mode:
-   curl -k https://$YAP_TTS_DOMAIN/health
+   # List available voices
+   curl -k https://$YAP_TTS_DOMAIN/voices
+   # Should return: ["en_GB-cori-high"]
+   
+   # Check API docs endpoint
+   curl -k https://$YAP_TTS_DOMAIN/openapi.json | head
    ```
 
-5. List available voices:
+5. Test API endpoints (Local mode):
    ```bash
-   # Local mode:
+   curl http://localhost:5000/health
    curl http://localhost:5000/voices
-   
-   # Caddy mode:
-   curl -k https://$YAP_TTS_DOMAIN/voices
+   curl http://localhost:5000/openapi.json | head
    ```
 
 **Voice files present but not detected**
+
+Each voice model requires BOTH files to work:
+- `.onnx` - The neural network model file
+- `.onnx.json` - The model configuration file
+
+If voices are empty or not detected:
 - Ensure both `.onnx` AND `.onnx.json` files exist for each voice
 - Check file permissions: `sudo chmod 644 *.onnx *.json`
 - Verify the `PIPER_MODELS_PATH` environment variable matches your directory
 - Restart the TTS service: `make tts-restart`
 
 **Synthesis slow**
-- Use medium quality voices for faster synthesis
+- Use medium quality voices instead of high for faster synthesis
 - Longer texts take more time to process
 
 ### ASR Issues

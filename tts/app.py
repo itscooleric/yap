@@ -35,7 +35,7 @@ def log_startup_info():
         print("", file=sys.stderr)
         print("╔" + "═" * 58 + "╗", file=sys.stderr)
         print("║" + " " * 58 + "║", file=sys.stderr)
-        print("║" + " " * 12 + "⚠️  NO VOICES FOUND  ⚠️" + " " * 12 + "║", file=sys.stderr)
+        print("║" + " " * 15 + "NO VOICES FOUND" + " " * 28 + "║", file=sys.stderr)
         print("║" + " " * 58 + "║", file=sys.stderr)
         print("╚" + "═" * 58 + "╝", file=sys.stderr)
         print("", file=sys.stderr)

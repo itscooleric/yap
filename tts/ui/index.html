@@ -472,18 +472,31 @@
       try {
         const response = await fetch('/voices');
         if (!response.ok) {
-          throw new Error('Failed to fetch voices');
+          throw new Error('Failed to fetch voices: ' + response.status);
         }
         
-        const data = await response.json();
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseErr) {
+          throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+        }
         
         // Normalize response to array of strings
         if (Array.isArray(data)) {
+          // Direct array of voices
           voices = data.map(v => typeof v === 'string' ? v : (v.name || v.id || String(v)));
-        } else if (typeof data === 'object') {
+        } else if (data && typeof data === 'object' && Array.isArray(data.voices)) {
+          // Object with voices property: { voices: [...] }
+          voices = data.voices.map(v => typeof v === 'string' ? v : (v.name || v.id || String(v)));
+        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+          // Object/map: use keys as voice names
           voices = Object.keys(data);
         } else {
-          voices = [];
+          // Unrecognized format - show error with type info only (avoid exposing raw response)
+          const dataType = Array.isArray(data) ? 'array' : typeof data;
+          throw new Error('Unrecognized voices format (got ' + dataType + ')');
         }
         
         populateVoiceSelect();
@@ -491,7 +504,7 @@
       } catch (err) {
         console.error('Failed to load voices:', err);
         voiceSelect.innerHTML = '<option value="">No voices available</option>';
-        showMessage('Failed to load voices. Is the TTS service running?', 'error');
+        showMessage('Failed to load voices: ' + err.message, 'error');
       }
     }
 
