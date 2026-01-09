@@ -45,21 +45,21 @@ Key variables:
 |----------|-------------|---------|
 | `APP_DOMAIN` | Domain for the unified app | `app.localhost` |
 | `CADDY_NETWORK` | Docker network for Caddy | `caddy` |
-| `WHISPER_MODELS_PATH` | Host path for Whisper models | `/srv/yap/asr/models` |
-| `PIPER_MODELS_PATH` | Host path for Piper voices | `/srv/yap/tts/models` |
+| `WHISPER_MODELS_PATH` | Host path for Whisper models | `/srv/whisper-asr/models` |
+| `PIPER_MODELS_PATH` | Host path for Piper voices | `/srv/piper/models` |
 | `ASR_MODEL` | Whisper model size | `tiny.en` |
 
 ### 2. Create Model Directories
 
 ```bash
-sudo mkdir -p /srv/yap/asr/models
-sudo mkdir -p /srv/yap/tts/models
+sudo mkdir -p /srv/whisper-asr/models
+sudo mkdir -p /srv/piper/models
 ```
 
 ### 3. Download TTS Voice Models
 
 ```bash
-cd /srv/yap/tts/models
+cd /srv/piper/models
 
 # Download Cori voice (recommended)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/high/en_GB-cori-high.onnx

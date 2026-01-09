@@ -28,31 +28,37 @@ services:
       caddy: ${APP_DOMAIN:-app.localhost}
       caddy.tls: internal
       
+      # ASR health check routing (for frontend health checks)
+      caddy.1_@asrHealth.path: /asr/docs
+      caddy.2_handle: "@asrHealth"
+      caddy.2_handle.rewrite: "* /docs"
+      caddy.2_handle.reverse_proxy: "whisper-asr:9000"
+      
       # ASR API routing - proxy to whisper-asr backend
       # The whisper backend expects /asr endpoint directly
-      caddy.1_@asr.path: /asr /asr/*
-      caddy.2_reverse_proxy: "@asr whisper-asr:9000"
+      caddy.3_@asr.path: /asr /asr/*
+      caddy.4_reverse_proxy: "@asr whisper-asr:9000"
       
       # ASR docs routing
-      caddy.3_@asrDocs.path: /asr-docs /asr-docs/*
-      caddy.4_handle: "@asrDocs"
-      caddy.4_handle.rewrite: "* /docs{uri}"
-      caddy.4_handle.reverse_proxy: "whisper-asr:9000"
-      
-      # ASR openapi.json
-      caddy.5_@asrOpenapi.path: /asr-openapi.json
-      caddy.6_handle: "@asrOpenapi"
-      caddy.6_handle.rewrite: "* /openapi.json"
+      caddy.5_@asrDocs.path: /asr-docs /asr-docs/*
+      caddy.6_handle: "@asrDocs"
+      caddy.6_handle.rewrite: "* /docs{uri}"
       caddy.6_handle.reverse_proxy: "whisper-asr:9000"
       
+      # ASR openapi.json
+      caddy.7_@asrOpenapi.path: /asr-openapi.json
+      caddy.8_handle: "@asrOpenapi"
+      caddy.8_handle.rewrite: "* /openapi.json"
+      caddy.8_handle.reverse_proxy: "whisper-asr:9000"
+      
       # TTS API routing - strip /tts prefix and proxy to piper-tts
-      caddy.7_@tts.path: /tts /tts/*
-      caddy.8_handle: "@tts"
-      caddy.8_handle.rewrite: "* {http.request.uri.path.strip_prefix:/tts}"
-      caddy.8_handle.reverse_proxy: "piper-tts:5000"
+      caddy.9_@tts.path: /tts /tts/*
+      caddy.10_handle: "@tts"
+      caddy.10_handle.rewrite: "* {http.request.uri.path.strip_prefix:/tts}"
+      caddy.10_handle.reverse_proxy: "piper-tts:5000"
       
       # Default: serve static UI
-      caddy.9_reverse_proxy: "{{upstreams 80}}"
+      caddy.11_reverse_proxy: "{{upstreams 80}}"
 
   # Whisper ASR Backend
   whisper-asr:

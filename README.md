@@ -104,8 +104,8 @@ APP_DOMAIN=app.localhost
 CADDY_NETWORK=caddy
 
 # Model paths
-WHISPER_MODELS_PATH=/srv/yap/asr/models
-PIPER_MODELS_PATH=/srv/yap/tts/models
+WHISPER_MODELS_PATH=/srv/whisper-asr/models
+PIPER_MODELS_PATH=/srv/piper/models
 
 # ASR settings
 ASR_ENGINE=faster_whisper
@@ -115,8 +115,8 @@ ASR_MODEL=tiny.en
 #### 3. Create Model Directories
 
 ```bash
-sudo mkdir -p /srv/yap/asr/models
-sudo mkdir -p /srv/yap/tts/models
+sudo mkdir -p /srv/whisper-asr/models
+sudo mkdir -p /srv/piper/models
 ```
 
 #### 4. Download TTS Voice Models
@@ -124,7 +124,7 @@ sudo mkdir -p /srv/yap/tts/models
 The TTS service requires voice models to work. Download at least one:
 
 ```bash
-cd /srv/yap/tts/models
+cd /srv/piper/models
 
 # Recommended: British English Cori (high quality)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/high/en_GB-cori-high.onnx
@@ -193,8 +193,8 @@ The original separate ASR and TTS deployments are still available in `asr/` and 
 |----------|-------------|---------|
 | `APP_DOMAIN` | Single domain for unified UI | `app.localhost` |
 | `CADDY_NETWORK` | Docker network for Caddy | `caddy` |
-| `WHISPER_MODELS_PATH` | Host path for Whisper models | `/srv/yap/asr/models` |
-| `PIPER_MODELS_PATH` | Host path for Piper voices | `/srv/yap/tts/models` |
+| `WHISPER_MODELS_PATH` | Host path for Whisper models | `/srv/whisper-asr/models` |
+| `PIPER_MODELS_PATH` | Host path for Piper voices | `/srv/piper/models` |
 | `ASR_MODEL` | Whisper model size | `tiny.en` |
 | `ASR_ENGINE` | ASR engine | `faster_whisper` |
 | `ASR_DEVICE` | Compute device | `cuda` |
