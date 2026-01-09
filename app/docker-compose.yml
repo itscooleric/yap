@@ -1,0 +1,97 @@
+# Yap Unified Application
+# Single-domain deployment with Caddy reverse proxy labels
+#
+# Usage:
+#   docker compose up -d
+#
+# Prerequisites:
+#   - Caddy-docker-proxy running on the caddy network
+#   - Voice models in PIPER_MODELS_PATH
+#   - Whisper models will be auto-downloaded to WHISPER_MODELS_PATH
+
+networks:
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK:-caddy}
+
+services:
+  # Unified UI - serves static files and routes API requests via Caddy labels
+  yap-app-ui:
+    image: nginx:alpine
+    container_name: yap-app-ui
+    restart: unless-stopped
+    networks: [caddy]
+    volumes:
+      - ./ui:/usr/share/nginx/html:ro
+    labels:
+      # Main domain
+      caddy: ${APP_DOMAIN:-app.localhost}
+      caddy.tls: internal
+      
+      # ASR API routing - proxy to whisper-asr backend
+      # The whisper backend expects /asr endpoint directly
+      caddy.1_@asr.path: /asr /asr/*
+      caddy.2_reverse_proxy: "@asr whisper-asr:9000"
+      
+      # ASR docs routing
+      caddy.3_@asrDocs.path: /asr-docs /asr-docs/*
+      caddy.4_handle: "@asrDocs"
+      caddy.4_handle.rewrite: "* /docs{uri}"
+      caddy.4_handle.reverse_proxy: "whisper-asr:9000"
+      
+      # ASR openapi.json
+      caddy.5_@asrOpenapi.path: /asr-openapi.json
+      caddy.6_handle: "@asrOpenapi"
+      caddy.6_handle.rewrite: "* /openapi.json"
+      caddy.6_handle.reverse_proxy: "whisper-asr:9000"
+      
+      # TTS API routing - strip /tts prefix and proxy to piper-tts
+      caddy.7_@tts.path: /tts /tts/*
+      caddy.8_handle: "@tts"
+      caddy.8_handle.rewrite: "* {http.request.uri.path.strip_prefix:/tts}"
+      caddy.8_handle.reverse_proxy: "piper-tts:5000"
+      
+      # Default: serve static UI
+      caddy.9_reverse_proxy: "{{upstreams 80}}"
+
+  # Whisper ASR Backend
+  whisper-asr:
+    image: onerahmet/openai-whisper-asr-webservice:v1.9.1-gpu
+    container_name: yap-whisper-asr
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks: [caddy]
+    environment:
+      ASR_ENGINE: ${ASR_ENGINE:-faster_whisper}
+      ASR_MODEL: ${ASR_MODEL:-tiny.en}
+      ASR_DEVICE: ${ASR_DEVICE:-cuda}
+      ASR_MODEL_PATH: ${ASR_MODEL_PATH:-/models}
+    volumes:
+      - ${WHISPER_MODELS_PATH:-/srv/yap/asr/models}:${ASR_MODEL_PATH:-/models}
+    tmpfs:
+      - /tmp
+
+  # Piper TTS Backend
+  piper-tts:
+    build:
+      context: ../tts
+      dockerfile: Dockerfile
+    container_name: yap-piper-tts
+    restart: unless-stopped
+    networks: [caddy]
+    volumes:
+      - ${PIPER_MODELS_PATH:-/srv/yap/tts/models}:/models:ro
+    environment:
+      - PIPER_MODELS_PATH=/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

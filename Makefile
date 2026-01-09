@@ -1,16 +1,23 @@
-.PHONY: help asr-up asr-down asr-logs asr-restart tts-up tts-down tts-logs tts-restart tts-health tts-voices tts-model-cori
+.PHONY: help app-up app-local app-down app-logs app-restart asr-up asr-down asr-logs asr-restart tts-up tts-down tts-logs tts-restart tts-health tts-voices tts-model-cori
 
 # Default target
 help:
 	@echo "Yap Makefile"
 	@echo ""
-	@echo "ASR (Quick Mic) targets:"
+	@echo "Unified App targets (recommended):"
+	@echo "  make app-up        - Start unified app (Caddy mode)"
+	@echo "  make app-local     - Start unified app (local mode)"
+	@echo "  make app-down      - Stop unified app"
+	@echo "  make app-logs      - View app logs"
+	@echo "  make app-restart   - Restart app"
+	@echo ""
+	@echo "Legacy ASR (Quick Mic) targets:"
 	@echo "  make asr-up        - Start ASR services"
 	@echo "  make asr-down      - Stop ASR services"
 	@echo "  make asr-logs      - View ASR logs"
 	@echo "  make asr-restart   - Restart ASR services"
 	@echo ""
-	@echo "TTS (Quick TTS) targets:"
+	@echo "Legacy TTS (Quick TTS) targets:"
 	@echo "  make tts-up        - Start TTS services"
 	@echo "  make tts-down      - Stop TTS services"
 	@echo "  make tts-logs      - View TTS logs"
@@ -20,6 +27,22 @@ help:
 	@echo ""
 	@echo "TTS Model helpers:"
 	@echo "  make tts-model-cori - Show commands to download Cori voice"
+
+# Unified App targets
+app-up:
+	cd app && docker compose up -d
+
+app-local:
+	cd app && docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+
+app-down:
+	cd app && docker compose down
+
+app-logs:
+	cd app && docker compose logs -f
+
+app-restart:
+	cd app && docker compose restart
 
 # ASR targets
 asr-up:
