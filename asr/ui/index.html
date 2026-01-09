@@ -850,7 +850,6 @@
     let animationId = null;
     let startTime = null;
     let timerInterval = null;
-    let clipIdCounter = 0;
 
     // Clips list: { id, createdAt, durationMs, mimeType, blob, objectUrl, status }
     // status: 'recorded' | 'queued' | 'working' | 'transcribed' | 'error'
@@ -1046,7 +1045,7 @@
     }
 
     function addClip(blob, mimeType, durationMs) {
-      const id = ++clipIdCounter;
+      const id = Date.now() + Math.random().toString(36).substr(2, 9);
       const objectUrl = URL.createObjectURL(blob);
       const clip = {
         id,
@@ -1133,9 +1132,10 @@
             audioStream.getTracks().forEach(track => track.stop());
           }
           if (audioContext) {
-            audioContext.close();
+            const ctx = audioContext;
             audioContext = null;
             analyser = null;
+            ctx.close().catch(err => console.warn('AudioContext close error:', err));
           }
           
           setStatus('done', 'Clip saved');
@@ -1317,7 +1317,8 @@
     function copyTranscript() {
       navigator.clipboard.writeText(transcript.value).then(() => {
         showMessage('Copied to clipboard', 'success');
-      }).catch(() => {
+      }).catch(err => {
+        console.warn('Clipboard copy failed:', err);
         showMessage('Copy failed', 'error');
       });
     }
@@ -1352,7 +1353,7 @@
       if (!btn) return;
       
       const action = btn.dataset.action;
-      const id = parseInt(btn.dataset.id, 10);
+      const id = btn.dataset.id;
       
       if (action === 'transcribe') {
         transcribeSingle(id);
@@ -1575,7 +1576,20 @@
         }
         
         const prompt = promptInput.value.trim();
+        if (!prompt) {
+          errorDiv.textContent = 'Please enter a prompt';
+          errorDiv.style.display = 'block';
+          return;
+        }
+        
+        // Limit total prompt size to avoid overwhelming the LLM
+        const maxLength = 50000;
         const fullPrompt = prompt + '\n\n' + transcriptText;
+        if (fullPrompt.length > maxLength) {
+          errorDiv.textContent = 'Transcript too long. Max ' + maxLength + ' characters.';
+          errorDiv.style.display = 'block';
+          return;
+        }
         
         summarizeBtn.disabled = true;
         summarizeBtn.textContent = 'Working...';
@@ -1594,7 +1608,8 @@
           });
           
           if (!response.ok) {
-            throw new Error(`Ollama error: ${response.status}`);
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`Ollama error: ${response.status} ${response.statusText}${errorText ? ' - ' + errorText.substring(0, 100) : ''}`);
           }
           
           const data = await response.json();
