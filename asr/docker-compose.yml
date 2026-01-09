@@ -34,7 +34,7 @@ services:
       caddy.@api.path: /asr/* /openapi.json /docs /docs/*
       caddy.handle_0: "@api"
       caddy.handle_0.reverse_proxy: "whisper-asr:9000"
-      caddy.handle_1: ""
+      caddy.handle_1: "/*"
       caddy.handle_1.reverse_proxy: "{{upstreams 80}}"
 
 networks:
