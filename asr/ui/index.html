@@ -350,11 +350,13 @@
     const canvasCtx = canvas.getContext('2d');
     const messageEl = document.getElementById('message');
 
-    // Initialize canvas
+    // Initialize canvas with DPI correction
     function resizeCanvas() {
-      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-      canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-      canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -390,13 +392,14 @@
       timerEl.textContent = '00:00';
     }
 
-    // Waveform visualization
-    function drawWaveform() {
+    // Bar meter visualization using frequency data
+    const BAR_COUNT = 48;
+
+    function drawBarMeter() {
       if (!analyser) return;
       
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      analyser.getByteTimeDomainData(dataArray);
+      const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(frequencyData);
       
       const width = canvas.offsetWidth;
       const height = canvas.offsetHeight;
@@ -404,46 +407,47 @@
       canvasCtx.fillStyle = '#252525';
       canvasCtx.fillRect(0, 0, width, height);
       
-      canvasCtx.lineWidth = 2;
-      canvasCtx.strokeStyle = '#9b59b6';
-      canvasCtx.beginPath();
+      const barWidth = width / BAR_COUNT;
+      const gap = 2;
+      const binSize = Math.floor(frequencyData.length / BAR_COUNT);
       
-      const sliceWidth = width / bufferLength;
-      let x = 0;
-      
-      for (let i = 0; i < bufferLength; i++) {
-        const v = dataArray[i] / 128.0;
-        const y = (v * height) / 2;
-        
-        if (i === 0) {
-          canvasCtx.moveTo(x, y);
-        } else {
-          canvasCtx.lineTo(x, y);
+      for (let i = 0; i < BAR_COUNT; i++) {
+        // Average the frequency bins for this bar
+        let sum = 0;
+        for (let j = 0; j < binSize; j++) {
+          sum += frequencyData[i * binSize + j];
         }
-        x += sliceWidth;
+        const avg = sum / binSize;
+        
+        const barHeight = (avg / 255) * height;
+        const x = i * barWidth;
+        const y = height - barHeight;
+        
+        canvasCtx.fillStyle = '#9b59b6';
+        canvasCtx.fillRect(x + gap / 2, y, barWidth - gap, barHeight);
       }
       
-      canvasCtx.lineTo(width, height / 2);
-      canvasCtx.stroke();
-      
-      animationId = requestAnimationFrame(drawWaveform);
+      animationId = requestAnimationFrame(drawBarMeter);
     }
 
-    function drawIdleWaveform() {
+    function drawIdleBars() {
       const width = canvas.offsetWidth;
       const height = canvas.offsetHeight;
       
       canvasCtx.fillStyle = '#252525';
       canvasCtx.fillRect(0, 0, width, height);
       
-      canvasCtx.strokeStyle = '#333';
-      canvasCtx.lineWidth = 1;
-      canvasCtx.beginPath();
-      canvasCtx.moveTo(0, height / 2);
-      canvasCtx.lineTo(width, height / 2);
-      canvasCtx.stroke();
+      const barWidth = width / BAR_COUNT;
+      const gap = 2;
+      const minHeight = 2;
+      
+      for (let i = 0; i < BAR_COUNT; i++) {
+        const x = i * barWidth;
+        canvasCtx.fillStyle = '#333';
+        canvasCtx.fillRect(x + gap / 2, height - minHeight, barWidth - gap, minHeight);
+      }
     }
-    drawIdleWaveform();
+    drawIdleBars();
 
     // Get supported MIME type
     function getSupportedMimeType() {
@@ -496,7 +500,7 @@
             cancelAnimationFrame(animationId);
             animationId = null;
           }
-          drawIdleWaveform();
+          drawIdleBars();
           
           // Cleanup
           if (audioStream) {
@@ -513,7 +517,7 @@
         
         mediaRecorder.start();
         startTimer();
-        drawWaveform();
+        drawBarMeter();
         
         setStatus('recording', 'Recording...');
         recordBtn.disabled = true;

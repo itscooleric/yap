@@ -83,24 +83,27 @@ cp .env.example .env
 Edit `.env` to customize your setup:
 
 ```bash
-# ASR Configuration
-YAP_ASR_DOMAIN=asr.yourdomain.com
-YAP_ASR_MODELS_DIR=/srv/whisper-asr/models
-YAP_ASR_MODEL=base
+# Network
+CADDY_NETWORK=caddy
 
-# TTS Configuration  
-YAP_TTS_DOMAIN=tts.yourdomain.com
-YAP_TTS_MODELS_DIR=/srv/piper/models
+# Domains
+ASR_DOMAIN=asr.yourdomain.com
+TTS_DOMAIN=tts.yourdomain.com
 
-# Network (for Caddy mode)
-YAP_CADDY_NETWORK=caddy
+# Model paths
+WHISPER_MODELS_PATH=/srv/yap/asr/models
+PIPER_MODELS_PATH=/srv/yap/tts/models
+
+# ASR settings
+ASR_ENGINE=faster_whisper
+ASR_MODEL=tiny.en
 ```
 
 #### 3. Create Model Directories
 
 ```bash
-sudo mkdir -p $YAP_ASR_MODELS_DIR
-sudo mkdir -p $YAP_TTS_MODELS_DIR
+sudo mkdir -p $WHISPER_MODELS_PATH
+sudo mkdir -p $PIPER_MODELS_PATH
 ```
 
 #### 4. Download TTS Voice Models
@@ -108,7 +111,7 @@ sudo mkdir -p $YAP_TTS_MODELS_DIR
 The TTS service requires voice models to work. Download at least one:
 
 ```bash
-cd $YAP_TTS_MODELS_DIR
+cd $PIPER_MODELS_PATH
 
 # Recommended: British English Cori (high quality)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/high/en_GB-cori-high.onnx
@@ -168,24 +171,38 @@ Access via localhost:
 
 ## Configuration
 
-### Environment Variables
+### Setting Environment Variables
 
-Yap uses a hierarchical configuration system:
+To configure Yap, copy the example environment file and customize it:
 
-1. **Root `.env`** (optional) - Sets global defaults using `YAP_*` prefixed variables
-2. **Service-specific `.env`** in `asr/` and `tts/` - Can override root values
+```bash
+cp .env.example .env
+# Edit .env with your settings
+```
 
-Root variables (in `.env.example`):
+The `.env` file is used by docker-compose to set configuration values. Key variables include:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `YAP_ASR_DOMAIN` | ASR domain for Caddy | `asr.example.internal` |
-| `YAP_ASR_MODELS_DIR` | Host path for Whisper models | `/srv/whisper-asr/models` |
-| `YAP_ASR_MODEL` | Whisper model size | `base` |
-| `YAP_ASR_ENGINE` | ASR engine | `openai_whisper` |
-| `YAP_TTS_DOMAIN` | TTS domain for Caddy | `tts.example.internal` |
-| `YAP_TTS_MODELS_DIR` | Host path for Piper voices | `/srv/piper/models` |
-| `YAP_CADDY_NETWORK` | Docker network name | `caddy` |
+| `CADDY_NETWORK` | Docker network for Caddy | `caddy` |
+| `ASR_DOMAIN` | ASR domain for Caddy | `asr.localhost` |
+| `TTS_DOMAIN` | TTS domain for Caddy | `tts.localhost` |
+| `WHISPER_MODELS_PATH` | Host path for Whisper models | `/srv/yap/asr/models` |
+| `PIPER_MODELS_PATH` | Host path for Piper voices | `/srv/yap/tts/models` |
+| `ASR_MODEL` | Whisper model size | `tiny.en` |
+| `ASR_ENGINE` | ASR engine | `faster_whisper` |
+| `ASR_DEVICE` | Compute device | `cuda` |
+
+**Note**: When testing endpoints with `curl`, use the literal hostname or export the variable:
+
+```bash
+# Either use the literal hostname:
+curl https://tts.localhost/health
+
+# Or export the variable first:
+export TTS_DOMAIN=tts.localhost
+curl https://$TTS_DOMAIN/health
+```
 
 ### Whisper Model Sizes
 
@@ -301,22 +318,22 @@ The TTS backend will start successfully even without voice models, but it will d
 
 3. Verify the models are in the correct directory:
    ```bash
-   ls -la $YAP_TTS_MODELS_DIR
+   ls -la $PIPER_MODELS_PATH
    # Should show .onnx and .onnx.json files
    ```
 
 4. Test API endpoints (Caddy mode):
    ```bash
    # Check health endpoint
-   curl -k https://$YAP_TTS_DOMAIN/health
+   curl -k https://$TTS_DOMAIN/health
    # Should return: {"status":"ok","voices_count":1}
    
    # List available voices
-   curl -k https://$YAP_TTS_DOMAIN/voices
+   curl -k https://$TTS_DOMAIN/voices
    # Should return: ["en_GB-cori-high"]
    
    # Check API docs endpoint
-   curl -k https://$YAP_TTS_DOMAIN/openapi.json | head
+   curl -k https://$TTS_DOMAIN/openapi.json | head
    ```
 
 5. Test API endpoints (Local mode):
@@ -363,7 +380,7 @@ If GPU isn't detected, ensure:
 
 **Model download slow**
 - First startup downloads the Whisper model
-- Models are cached in `$YAP_ASR_MODELS_DIR` for subsequent runs
+- Models are cached in `$WHISPER_MODELS_PATH` for subsequent runs
 - Larger models (medium, large) take longer to download
 
 ### General Issues
