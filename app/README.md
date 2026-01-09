@@ -114,6 +114,12 @@ The unified app routes API requests through the same domain:
 
 ## Features
 
+### Tabs (In-Page Navigation)
+- ASR and TTS are tabs within a single page - no page reloads
+- Optional hash-based deep links (#asr, #tts) for bookmarking
+- State preserved when switching tabs
+- Recording indicator shows in header when recording is active
+
 ### ASR Tab
 - Multi-clip recording with waveform visualization
 - Per-clip transcription with status tracking
@@ -131,8 +137,16 @@ The unified app routes API requests through the same domain:
 - Keyboard shortcut: Ctrl+Enter to synthesize
 
 ### Add-ons
-- Non-modal draggable/resizable windows
+- Non-modal draggable/resizable windows centered on screen
+- Cascade offset for multiple windows
 - Ollama Summarize: Summarize transcripts using local LLM
+
+### Settings (Gear Icon)
+- Configure add-on settings via the Settings gear icon in the header
+- Ollama URL defaults to localhost:11434
+- Ollama Model defaults to llama3
+- Toggle "Allow non-localhost URLs" for remote services
+- Settings persist in localStorage (no file edits required)
 
 ## Troubleshooting
 

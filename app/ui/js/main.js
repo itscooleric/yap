@@ -3,7 +3,7 @@
 
 import { asr } from './asr.js';
 import { tts } from './tts.js';
-import { initAddonPanel } from './addons.js';
+import { initAddonPanel, initSettingsPanel } from './addons.js';
 
 // App state
 let activeTab = 'asr';
@@ -29,7 +29,7 @@ function showMessage(text, type = '') {
   }
 }
 
-// Switch tabs
+// Switch tabs (in-page, no navigation)
 function switchTab(tabName) {
   if (tabName === activeTab) return;
   
@@ -43,14 +43,9 @@ function switchTab(tabName) {
     content.classList.toggle('active', content.id === `${tabName}-tab`);
   });
   
-  // Update tagline
-  const tagline = document.querySelector('.tagline');
-  if (tagline) {
-    if (tabName === 'asr') {
-      tagline.textContent = 'local automatic speech recognition';
-    } else if (tabName === 'tts') {
-      tagline.textContent = 'local text-to-speech';
-    }
+  // Update URL hash for deep linking (optional)
+  if (history.replaceState) {
+    history.replaceState(null, null, '#' + tabName);
   }
   
   activeTab = tabName;
@@ -129,6 +124,14 @@ function setupRecordingIndicator() {
   }
 }
 
+// Handle hash-based routing for deep links
+function handleHashRoute() {
+  const hash = window.location.hash.replace('#', '');
+  if (hash === 'asr' || hash === 'tts') {
+    switchTab(hash);
+  }
+}
+
 // Initialize application
 function init() {
   // Cache tab elements
@@ -145,12 +148,14 @@ function init() {
     tts.init(tabs.tts);
   }
   
-  // Initialize addon panel
+  // Initialize addon panel and settings
   initAddonPanel();
+  initSettingsPanel();
   
-  // Setup tab navigation
+  // Setup tab navigation (in-page, no page reload)
   document.querySelectorAll('.nav-tabs button[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
       const tabName = btn.dataset.tab;
       switchTab(tabName);
     });
@@ -158,6 +163,10 @@ function init() {
   
   // Setup recording indicator
   setupRecordingIndicator();
+  
+  // Handle initial hash route
+  handleHashRoute();
+  window.addEventListener('hashchange', handleHashRoute);
   
   // Check backend availability
   checkBackends();
