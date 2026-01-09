@@ -139,13 +139,13 @@ The unified app routes API requests through the same domain:
 ### Add-ons
 - Non-modal draggable/resizable windows centered on screen
 - Cascade offset for multiple windows
+- Enable/disable add-ons via toggle switches in the Add-ons panel
 - Ollama Summarize: Summarize transcripts using local LLM
 
-### Settings (Gear Icon)
-- Configure add-on settings via the Settings gear icon in the header
-- Ollama URL defaults to localhost:11434
-- Ollama Model defaults to llama3
-- Toggle "Allow non-localhost URLs" for remote services
+### Add-on Settings (Gear Icon)
+- Settings gear icon appears only when enabled add-ons have configurable settings
+- Each add-on contributes its own settings schema (add-on-scoped, not global)
+- Ollama add-on settings: URL (default localhost:11434), Model (default llama3), Allow non-localhost URLs
 - Settings persist in localStorage (no file edits required)
 
 ## Troubleshooting

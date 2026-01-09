@@ -9,13 +9,7 @@ const CASCADE_STEP = 24;
 
 // Configuration system - localStorage backed with defaults
 const CONFIG_NAMESPACE = 'yap.config';
-
-// Default configuration
-const defaultConfig = {
-  ollamaUrl: 'http://localhost:11434',
-  ollamaModel: 'llama3',
-  allowNonLocalhost: false
-};
+const ADDONS_NAMESPACE = 'yap.addons';
 
 // Get config value with localStorage override
 export function getConfig(key) {
@@ -27,9 +21,21 @@ export function getConfig(key) {
   } catch (err) {
     // Ignore parse errors
   }
-  // Fall back to window.__YAP_CONFIG or defaults
+  // Fall back to window.__YAP_CONFIG or addon defaults
   const fileConfig = window.__YAP_CONFIG || {};
-  return fileConfig[key] !== undefined ? fileConfig[key] : defaultConfig[key];
+  if (fileConfig[key] !== undefined) {
+    return fileConfig[key];
+  }
+  // Check if any addon has this as a default
+  for (const addon of addons) {
+    if (addon.settingsSchema) {
+      const field = addon.settingsSchema.find(f => f.key === key);
+      if (field && field.default !== undefined) {
+        return field.default;
+      }
+    }
+  }
+  return undefined;
 }
 
 // Set config value
@@ -38,6 +44,29 @@ export function setConfig(key, value) {
     localStorage.setItem(`${CONFIG_NAMESPACE}.${key}`, JSON.stringify(value));
   } catch (err) {
     console.warn('Failed to save config:', err);
+  }
+}
+
+// Get addon enabled state
+function isAddonEnabled(addonId) {
+  try {
+    const stored = localStorage.getItem(`${ADDONS_NAMESPACE}.enabled.${addonId}`);
+    if (stored !== null) {
+      return JSON.parse(stored);
+    }
+  } catch (err) {
+    // Ignore parse errors
+  }
+  // Default: enabled
+  return true;
+}
+
+// Set addon enabled state
+function setAddonEnabled(addonId, enabled) {
+  try {
+    localStorage.setItem(`${ADDONS_NAMESPACE}.enabled.${addonId}`, JSON.stringify(enabled));
+  } catch (err) {
+    console.warn('Failed to save addon state:', err);
   }
 }
 
@@ -65,12 +94,12 @@ export function validateUrl(url, requireLocalhost = true) {
   }
   // Only check localhost requirement if requireLocalhost is true
   if (requireLocalhost && !isLocalhostUrl(url)) {
-    return { valid: false, error: 'Non-localhost URLs not allowed. Enable in Settings.' };
+    return { valid: false, error: 'Non-localhost URLs not allowed. Enable in add-on settings.' };
   }
   return { valid: true };
 }
 
-// Addon registry
+// Addon registry - each addon can declare a settingsSchema
 const addons = [
   {
     id: 'ollama-summarize',
@@ -78,12 +107,19 @@ const addons = [
     description: 'Summarize transcript with Ollama',
     render: renderOllamaSummarize,
     context: 'asr',
-    settings: [
+    settingsTitle: 'Ollama',
+    settingsSchema: [
       { key: 'ollamaUrl', label: 'Ollama URL', type: 'url', default: 'http://localhost:11434', localOnly: true },
-      { key: 'ollamaModel', label: 'Model', type: 'string', default: 'llama3' }
+      { key: 'ollamaModel', label: 'Model', type: 'string', default: 'llama3' },
+      { key: 'allowNonLocalhost', label: 'Allow non-localhost URLs', type: 'boolean', default: false, hint: 'Enable to connect to remote services' }
     ]
   }
 ];
+
+// Get enabled addons
+function getEnabledAddons() {
+  return addons.filter(addon => isAddonEnabled(addon.id));
+}
 
 // Get addon context for accessing app state
 export function getAddonContext() {
@@ -240,8 +276,14 @@ export function createAddonWindow(title, contentRenderer, options = {}) {
 
 // Open addon window
 export function openAddonWindow(addon) {
+  if (!isAddonEnabled(addon.id)) {
+    return; // Don't open disabled addons
+  }
   createAddonWindow(addon.name, addon.render);
 }
+
+// Re-render callback for addon list
+let renderAddonListCallback = null;
 
 // Initialize addon panel
 export function initAddonPanel() {
@@ -252,33 +294,58 @@ export function initAddonPanel() {
 
   if (!addonsBtn || !addonPanel) return;
 
-  // Render addon list
+  // Render addon list with enable/disable toggles
   function renderAddonList() {
     addonPanelList.innerHTML = '';
     addons.forEach(addon => {
+      const enabled = isAddonEnabled(addon.id);
       const div = document.createElement('div');
-      div.className = 'addon-item';
+      div.className = 'addon-item' + (enabled ? '' : ' disabled');
       div.innerHTML = `
-        <div>
+        <div class="addon-item-info">
           <div class="addon-item-name">${addon.name}</div>
           <div class="addon-item-desc">${addon.description}</div>
         </div>
+        <label class="addon-toggle" title="${enabled ? 'Disable' : 'Enable'} add-on">
+          <input type="checkbox" ${enabled ? 'checked' : ''}>
+          <span class="addon-toggle-slider"></span>
+        </label>
       `;
-      div.addEventListener('click', () => {
-        addonPanel.style.display = 'none';
-        openAddonWindow(addon);
+      
+      const checkbox = div.querySelector('input[type="checkbox"]');
+      const infoArea = div.querySelector('.addon-item-info');
+      
+      // Toggle enable/disable
+      checkbox.addEventListener('change', (e) => {
+        e.stopPropagation();
+        setAddonEnabled(addon.id, checkbox.checked);
+        div.classList.toggle('disabled', !checkbox.checked);
+        // Update settings button visibility
+        updateSettingsButtonVisibility();
       });
+      
+      // Click on info area opens the addon window (if enabled)
+      infoArea.addEventListener('click', () => {
+        if (isAddonEnabled(addon.id)) {
+          addonPanel.style.display = 'none';
+          openAddonWindow(addon);
+        }
+      });
+      
       addonPanelList.appendChild(div);
     });
   }
+  
+  renderAddonListCallback = renderAddonList;
   renderAddonList();
 
   // Toggle panel - position it centered below header
   addonsBtn.addEventListener('click', () => {
     if (addonPanel.style.display === 'none') {
+      renderAddonList(); // Refresh state
       // Position panel centered below the button
       const btnRect = addonsBtn.getBoundingClientRect();
-      const panelWidth = 220;
+      const panelWidth = 260;
       let left = btnRect.left + (btnRect.width / 2) - (panelWidth / 2);
       // Clamp to viewport
       left = Math.max(10, Math.min(left, window.innerWidth - panelWidth - 10));
@@ -305,6 +372,15 @@ export function initAddonPanel() {
   });
 }
 
+// Update settings button visibility based on enabled addons with settings
+function updateSettingsButtonVisibility() {
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (!settingsBtn) return;
+  
+  const enabledAddonsWithSettings = getEnabledAddons().filter(a => a.settingsSchema && a.settingsSchema.length > 0);
+  settingsBtn.style.display = enabledAddonsWithSettings.length > 0 ? '' : 'none';
+}
+
 // Initialize settings panel
 export function initSettingsPanel() {
   const settingsBtn = document.getElementById('settingsBtn');
@@ -313,97 +389,140 @@ export function initSettingsPanel() {
   settingsBtn.addEventListener('click', () => {
     openSettingsWindow();
   });
+  
+  // Update visibility based on enabled addons
+  updateSettingsButtonVisibility();
 }
 
 // Open settings window
 function openSettingsWindow() {
-  createAddonWindow('Settings', renderSettingsPanel, { width: 400, height: 380 });
+  createAddonWindow('Add-on Settings', renderSettingsPanel, { width: 400, height: 400 });
 }
 
-// Render settings panel
+// Render settings panel - dynamically built from enabled add-ons' settings
 function renderSettingsPanel(container, ctx) {
-  container.innerHTML = `
-    <div class="settings-section">
-      <div class="settings-section-title">Connections</div>
-      
-      <div class="settings-row">
-        <label for="settingsOllamaUrl">Ollama URL</label>
-        <input type="url" id="settingsOllamaUrl" placeholder="http://localhost:11434">
-        <div class="settings-hint" id="ollamaUrlHint"></div>
+  const enabledAddons = getEnabledAddons();
+  const addonsWithSettings = enabledAddons.filter(a => a.settingsSchema && a.settingsSchema.length > 0);
+  
+  if (addonsWithSettings.length === 0) {
+    container.innerHTML = `
+      <div class="settings-empty">
+        <p>No add-on settings available.</p>
+        <p class="settings-hint">Enable add-ons with configurable settings to see options here.</p>
       </div>
-      
-      <div class="settings-row">
-        <label for="settingsOllamaModel">Ollama Model</label>
-        <input type="text" id="settingsOllamaModel" placeholder="llama3">
-      </div>
-      
-      <div class="settings-row">
-        <label class="settings-toggle-label">
-          <input type="checkbox" id="settingsAllowNonLocalhost">
-          <span>Allow non-localhost URLs</span>
-        </label>
-        <div class="settings-hint">Enable to connect to remote services</div>
-      </div>
-    </div>
+    `;
+    return;
+  }
+  
+  // Build settings UI from add-ons' schemas
+  let html = '';
+  
+  addonsWithSettings.forEach(addon => {
+    html += `<div class="settings-section" data-addon="${addon.id}">`;
+    html += `<div class="settings-section-title">${addon.settingsTitle || addon.name}</div>`;
     
+    addon.settingsSchema.forEach(field => {
+      const fieldId = `settings_${addon.id}_${field.key}`;
+      html += `<div class="settings-row">`;
+      
+      if (field.type === 'boolean') {
+        html += `
+          <label class="settings-toggle-label">
+            <input type="checkbox" id="${fieldId}" data-key="${field.key}">
+            <span>${field.label}</span>
+          </label>
+        `;
+      } else {
+        html += `<label for="${fieldId}">${field.label}</label>`;
+        if (field.type === 'url') {
+          html += `<input type="url" id="${fieldId}" data-key="${field.key}" placeholder="${field.default || ''}">`;
+        } else {
+          html += `<input type="text" id="${fieldId}" data-key="${field.key}" placeholder="${field.default || ''}">`;
+        }
+      }
+      
+      if (field.hint) {
+        html += `<div class="settings-hint">${field.hint}</div>`;
+      }
+      html += `<div class="settings-field-error" id="${fieldId}_error"></div>`;
+      html += `</div>`;
+    });
+    
+    html += `</div>`;
+  });
+  
+  html += `
     <div class="settings-actions">
       <button class="small primary" id="settingsSaveBtn">Save</button>
       <button class="small" id="settingsResetBtn">Reset to Defaults</button>
     </div>
-    
     <div class="settings-message" id="settingsMessage" style="display: none;"></div>
   `;
-
-  const ollamaUrlInput = container.querySelector('#settingsOllamaUrl');
-  const ollamaModelInput = container.querySelector('#settingsOllamaModel');
-  const allowNonLocalhostInput = container.querySelector('#settingsAllowNonLocalhost');
-  const ollamaUrlHint = container.querySelector('#ollamaUrlHint');
+  
+  container.innerHTML = html;
+  
+  // Load current values
+  addonsWithSettings.forEach(addon => {
+    addon.settingsSchema.forEach(field => {
+      const fieldId = `settings_${addon.id}_${field.key}`;
+      const input = container.querySelector(`#${fieldId}`);
+      if (!input) return;
+      
+      const currentValue = getConfig(field.key);
+      if (field.type === 'boolean') {
+        input.checked = currentValue !== undefined ? currentValue : (field.default ?? false);
+      } else {
+        input.value = currentValue !== undefined ? currentValue : (field.default ?? '');
+      }
+    });
+  });
+  
   const saveBtn = container.querySelector('#settingsSaveBtn');
   const resetBtn = container.querySelector('#settingsResetBtn');
   const messageDiv = container.querySelector('#settingsMessage');
-
-  // Load current values
-  ollamaUrlInput.value = getConfig('ollamaUrl');
-  ollamaModelInput.value = getConfig('ollamaModel');
-  allowNonLocalhostInput.checked = getConfig('allowNonLocalhost');
-
-  // Validate URL on input
-  ollamaUrlInput.addEventListener('input', () => {
-    const url = ollamaUrlInput.value.trim();
-    if (!url) {
-      ollamaUrlHint.textContent = '';
-      ollamaUrlHint.className = 'settings-hint';
-      return;
-    }
-    const validation = validateUrl(url, !allowNonLocalhostInput.checked);
-    if (!validation.valid) {
-      ollamaUrlHint.textContent = validation.error;
-      ollamaUrlHint.className = 'settings-hint error';
-    } else {
-      ollamaUrlHint.textContent = '';
-      ollamaUrlHint.className = 'settings-hint';
-    }
-  });
-
+  
   // Save settings
   saveBtn.addEventListener('click', () => {
-    const url = ollamaUrlInput.value.trim() || defaultConfig.ollamaUrl;
-    const model = ollamaModelInput.value.trim() || defaultConfig.ollamaModel;
-    const allowNonLocalhost = allowNonLocalhostInput.checked;
-
-    // Validate URL
-    const validation = validateUrl(url, !allowNonLocalhost);
-    if (!validation.valid) {
-      messageDiv.textContent = validation.error;
+    let hasError = false;
+    
+    // Validate and collect values
+    addonsWithSettings.forEach(addon => {
+      addon.settingsSchema.forEach(field => {
+        const fieldId = `settings_${addon.id}_${field.key}`;
+        const input = container.querySelector(`#${fieldId}`);
+        const errorDiv = container.querySelector(`#${fieldId}_error`);
+        if (!input) return;
+        
+        errorDiv.textContent = '';
+        
+        if (field.type === 'boolean') {
+          setConfig(field.key, input.checked);
+        } else {
+          const value = input.value.trim() || (field.default ?? '');
+          
+          // Validate URL fields
+          if (field.type === 'url' && field.localOnly) {
+            // Check if allowNonLocalhost is enabled for this addon
+            const allowNonLocalhost = getConfig('allowNonLocalhost');
+            if (!allowNonLocalhost && !isLocalhostUrl(value)) {
+              errorDiv.textContent = 'Non-localhost URLs not allowed';
+              hasError = true;
+              return;
+            }
+          }
+          
+          setConfig(field.key, value);
+        }
+      });
+    });
+    
+    if (hasError) {
+      messageDiv.textContent = 'Please fix errors above';
       messageDiv.className = 'settings-message error';
       messageDiv.style.display = 'block';
       return;
     }
-
-    setConfig('ollamaUrl', url);
-    setConfig('ollamaModel', model);
-    setConfig('allowNonLocalhost', allowNonLocalhost);
-
+    
     messageDiv.textContent = 'Settings saved';
     messageDiv.className = 'settings-message success';
     messageDiv.style.display = 'block';
@@ -411,19 +530,31 @@ function renderSettingsPanel(container, ctx) {
       messageDiv.style.display = 'none';
     }, 2000);
   });
-
+  
   // Reset to defaults
   resetBtn.addEventListener('click', () => {
-    ollamaUrlInput.value = defaultConfig.ollamaUrl;
-    ollamaModelInput.value = defaultConfig.ollamaModel;
-    allowNonLocalhostInput.checked = defaultConfig.allowNonLocalhost;
+    addonsWithSettings.forEach(addon => {
+      addon.settingsSchema.forEach(field => {
+        const fieldId = `settings_${addon.id}_${field.key}`;
+        const input = container.querySelector(`#${fieldId}`);
+        if (!input) return;
+        
+        // Clear stored value
+        localStorage.removeItem(`${CONFIG_NAMESPACE}.${field.key}`);
+        
+        // Reset input to default
+        if (field.type === 'boolean') {
+          input.checked = field.default ?? false;
+        } else {
+          input.value = field.default ?? '';
+        }
+        
+        // Clear any errors
+        const errorDiv = container.querySelector(`#${fieldId}_error`);
+        if (errorDiv) errorDiv.textContent = '';
+      });
+    });
     
-    // Clear stored values
-    localStorage.removeItem(`${CONFIG_NAMESPACE}.ollamaUrl`);
-    localStorage.removeItem(`${CONFIG_NAMESPACE}.ollamaModel`);
-    localStorage.removeItem(`${CONFIG_NAMESPACE}.allowNonLocalhost`);
-    
-    ollamaUrlHint.textContent = '';
     messageDiv.textContent = 'Reset to defaults';
     messageDiv.className = 'settings-message success';
     messageDiv.style.display = 'block';
@@ -440,7 +571,7 @@ const MAX_OLLAMA_PROMPT_LENGTH = 50000;
 function renderOllamaSummarize(container, ctx) {
   container.classList.add('ollama-addon');
 
-  // Get config from runtime settings
+  // Get config from runtime settings (defaults come from settingsSchema via getConfig)
   const ollamaUrl = getConfig('ollamaUrl');
   const ollamaModel = getConfig('ollamaModel');
 
@@ -469,9 +600,10 @@ function renderOllamaSummarize(container, ctx) {
   let lastOutput = '';
 
   summarizeBtn.addEventListener('click', async () => {
-    // Get fresh config values
+    // Get fresh config values (defaults come from settingsSchema via getConfig)
     const currentUrl = getConfig('ollamaUrl');
     const currentModel = getConfig('ollamaModel');
+    const allowNonLocalhost = getConfig('allowNonLocalhost') ?? false;
 
     const transcriptText = ctx.getTranscript();
     if (!transcriptText) {
@@ -489,7 +621,7 @@ function renderOllamaSummarize(container, ctx) {
     }
 
     // Validate URL
-    const urlValidation = ctx.validateUrl(currentUrl, true);
+    const urlValidation = ctx.validateUrl(currentUrl, !allowNonLocalhost);
     if (!urlValidation.valid) {
       errorDiv.textContent = urlValidation.error;
       errorDiv.style.display = 'block';

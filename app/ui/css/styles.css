@@ -798,13 +798,25 @@ audio::-webkit-media-controls-panel {
   border: 1px solid var(--border);
   border-radius: 3px;
   margin-bottom: 0.35rem;
-  cursor: pointer;
   transition: all 0.15s;
 }
 
 .addon-item:hover {
   border-color: var(--accent);
   background: var(--accent-glow);
+}
+
+.addon-item.disabled {
+  opacity: 0.5;
+}
+
+.addon-item.disabled .addon-item-info {
+  cursor: default;
+}
+
+.addon-item-info {
+  flex: 1;
+  cursor: pointer;
 }
 
 .addon-item-name {
@@ -816,6 +828,57 @@ audio::-webkit-media-controls-panel {
   font-size: 0.7rem;
   color: var(--text-muted);
   margin-top: 0.15rem;
+}
+
+/* Addon toggle switch */
+.addon-toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.addon-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.addon-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: 0.2s;
+}
+
+.addon-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--text-muted);
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.addon-toggle input:checked + .addon-toggle-slider {
+  background-color: var(--accent-glow);
+  border-color: var(--accent);
+}
+
+.addon-toggle input:checked + .addon-toggle-slider:before {
+  transform: translateX(16px);
+  background-color: var(--accent);
 }
 
 /* Ollama addon specific */
@@ -1051,6 +1114,29 @@ footer a:hover {
 .settings-message.error {
   background: rgba(239, 68, 68, 0.1);
   color: var(--error);
+}
+
+/* Settings empty state */
+.settings-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary);
+}
+
+.settings-empty p {
+  margin-bottom: 0.5rem;
+}
+
+/* Settings field error */
+.settings-field-error {
+  font-size: 0.7rem;
+  color: var(--error);
+  margin-top: 0.25rem;
+  min-height: 0;
+}
+
+.settings-field-error:not(:empty) {
+  min-height: 1rem;
 }
 
 /* Addon info display */
