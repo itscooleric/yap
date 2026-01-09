@@ -33,12 +33,8 @@ function showMessage(text, type = '') {
 function switchTab(tabName) {
   if (tabName === activeTab) return;
   
-  // Check if target tab is enabled
-  if (tabName === 'asr' && !asrEnabled) return;
-  if (tabName === 'tts' && !ttsEnabled) return;
-  
   // Update tab buttons
-  document.querySelectorAll('.nav-tabs button').forEach(btn => {
+  document.querySelectorAll('.nav-tabs button[data-tab]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabName);
   });
   
@@ -155,9 +151,7 @@ function init() {
   document.querySelectorAll('.nav-tabs button[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
       const tabName = btn.dataset.tab;
-      if (!btn.classList.contains('disabled')) {
-        switchTab(tabName);
-      }
+      switchTab(tabName);
     });
   });
   

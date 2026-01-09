@@ -142,13 +142,13 @@ h1::before {
 }
 
 .nav-tabs button.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .nav-tabs button.disabled:hover {
-  color: var(--text-secondary);
-  border-color: var(--border);
+  color: var(--accent);
+  border-color: var(--accent);
+  opacity: 0.8;
 }
 
 /* Tab Content */
