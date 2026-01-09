@@ -1,5 +1,9 @@
+networks:
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK:-caddy}
+
 services:
-  # Piper TTS Backend
   piper-tts:
     build: .
     container_name: yap-piper-tts
@@ -8,8 +12,7 @@ services:
       - ${PIPER_MODELS_PATH:-/srv/yap/tts/models}:/models:ro
     environment:
       - PIPER_MODELS_PATH=/models
-    networks:
-      - caddy
+    networks: [caddy]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
       interval: 30s
@@ -17,24 +20,16 @@ services:
       retries: 3
       start_period: 10s
 
-  # Static UI served by nginx
   tts-ui:
     image: nginx:alpine
     container_name: yap-tts-ui
     restart: unless-stopped
     volumes:
       - ./ui:/usr/share/nginx/html:ro
-    networks:
-      - caddy
+    networks: [caddy]
     labels:
       caddy: ${TTS_DOMAIN:-tts.localhost}
-      caddy.@api.path: /health /voices /docs /docs/* /openapi.json /redoc /redoc/* /synthesize/*
-      caddy.handle_0: "@api"
-      caddy.handle_0.reverse_proxy: "piper-tts:5000"
-      caddy.handle_1: "/*"
-      caddy.handle_1.reverse_proxy: "{{upstreams 80}}"
-
-networks:
-  caddy:
-    name: ${CADDY_NETWORK:-caddy}
-    external: true
+      caddy.tls: internal
+      caddy.1_@api.path: /health /voices /docs /docs/* /openapi.json /redoc /redoc/* /synthesize/*
+      caddy.2_reverse_proxy: "@api piper-tts:5000"
+      caddy.3_reverse_proxy: "{{upstreams 80}}"
