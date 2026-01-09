@@ -21,7 +21,7 @@ services:
       ASR_DEVICE: ${ASR_DEVICE:-cuda}
       ASR_MODEL_PATH: ${ASR_MODEL_PATH:-/models}
     volumes:
-      - ${WHISPER_MODELS_PATH:-/srv/yap/asr/models}:${ASR_MODEL_PATH:-/models}
+      - ${WHISPER_MODELS_PATH:-/srv/whisper-asr/models}:${ASR_MODEL_PATH:-/models}
     tmpfs:
       - /tmp
 

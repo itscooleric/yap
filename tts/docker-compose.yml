@@ -9,7 +9,7 @@ services:
     container_name: yap-piper-tts
     restart: unless-stopped
     volumes:
-      - ${PIPER_MODELS_PATH:-/srv/yap/tts/models}:/models:ro
+      - ${PIPER_MODELS_PATH:-/srv/piper/models}:/models:ro
     environment:
       - PIPER_MODELS_PATH=/models
     networks: [caddy]
