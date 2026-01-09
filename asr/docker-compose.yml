@@ -1,15 +1,11 @@
+networks:
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK:-caddy}
+
 services:
-  # Whisper ASR Backend (GPU-enabled)
   whisper-asr:
-    image: onerahmet/openai-whisper-asr-webservice:v1.3.0-gpu
-    container_name: yap-whisper-asr
-    restart: unless-stopped
-    environment:
-      - ASR_MODEL=${ASR_MODEL:-tiny.en}
-      - ASR_ENGINE=${ASR_ENGINE:-faster_whisper}
-    volumes:
-      - ${WHISPER_MODELS_PATH:-/srv/yap/asr/models}:/root/.cache/whisper
-    # GPU configuration compatible with legacy docker-compose
+    image: onerahmet/openai-whisper-asr-webservice:v1.9.1-gpu
     deploy:
       resources:
         reservations:
@@ -17,27 +13,27 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    networks:
-      - caddy
+    restart: unless-stopped
+    networks: [caddy]
+    environment:
+      ASR_ENGINE: ${ASR_ENGINE:-faster_whisper}
+      ASR_MODEL: ${ASR_MODEL:-tiny.en}
+      ASR_DEVICE: ${ASR_DEVICE:-cuda}
+      ASR_MODEL_PATH: ${ASR_MODEL_PATH:-/models}
+    volumes:
+      - ${WHISPER_MODELS_PATH:-/srv/yap/asr/models}:${ASR_MODEL_PATH:-/models}
+    tmpfs:
+      - /tmp
 
-  # Static UI served by nginx
   yap-asr-ui:
     image: nginx:alpine
-    container_name: yap-asr-ui
     restart: unless-stopped
+    networks: [caddy]
     volumes:
       - ./ui:/usr/share/nginx/html:ro
-    networks:
-      - caddy
     labels:
       caddy: ${ASR_DOMAIN:-asr.localhost}
-      caddy.@api.path: /asr/* /openapi.json /docs /docs/*
-      caddy.handle_0: "@api"
-      caddy.handle_0.reverse_proxy: "whisper-asr:9000"
-      caddy.handle_1: "/*"
-      caddy.handle_1.reverse_proxy: "{{upstreams 80}}"
-
-networks:
-  caddy:
-    name: ${CADDY_NETWORK:-caddy}
-    external: true
+      caddy.tls: internal
+      caddy.1_@asrApi.path: /asr /asr/* /docs /docs/* /openapi.json /redoc /redoc/*
+      caddy.2_reverse_proxy: "@asrApi whisper-asr:9000"
+      caddy.3_reverse_proxy: "{{upstreams 80}}"
