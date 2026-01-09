@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yap - Speech Tools</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-row">
+        <div class="header-left">
+          <h1>yap</h1>
+          <div class="recording-indicator" id="recordingIndicator" title="Click to return to ASR">
+            <span class="rec-dot"></span>
+            <span>Recording <span id="recordingIndicatorTime">00:00</span></span>
+          </div>
+        </div>
+        <nav class="nav-tabs">
+          <button data-tab="asr" class="active">ASR</button>
+          <button data-tab="tts">TTS</button>
+          <button id="addonsBtn">Add-ons</button>
+          <button id="settingsBtn" class="settings-btn" title="Settings">*</button>
+        </nav>
+      </div>
+      <p class="tagline">local speech tools</p>
+    </header>
+
+    <main>
+      <!-- ASR Tab -->
+      <div id="asr-tab" class="tab-content active">
+        <div class="panel">
+          <div class="panel-header">Recording</div>
+
+          <div class="waveform-container">
+            <canvas id="waveform"></canvas>
+          </div>
+
+          <div class="status-bar">
+            <div class="status">
+              <span class="status-dot" id="asrStatusDot"></span>
+              <span id="asrStatusText">Idle</span>
+            </div>
+            <div class="timer" id="timer">00:00</div>
+          </div>
+
+          <div class="controls">
+            <button id="recordBtn" class="primary">Record</button>
+            <button id="stopBtn" disabled>Stop</button>
+            <button id="transcribeAllBtn" disabled>Transcribe All</button>
+            <button id="clearBtn" disabled>Clear</button>
+          </div>
+
+          <div class="clips-list" id="clipsList">
+            <div class="clips-list-header">
+              <span class="clips-list-title">Clips</span>
+              <span id="clipsCount" class="clips-list-title">0</span>
+            </div>
+            <div id="clipsContainer">
+              <div class="no-clips">No clips recorded</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">Transcript</div>
+          <textarea id="transcript" class="transcript-area" placeholder="Transcript will appear here..." readonly></textarea>
+
+          <div class="output-controls">
+            <button id="copyBtn" disabled title="Copy using default mode">Copy</button>
+            <button id="copyCleanBtn" disabled title="Copy without separators">Copy Clean</button>
+            <button id="copySeparatorsBtn" disabled title="Copy with clip separators">Copy with Separators</button>
+            <button id="downloadTxtBtn" disabled>Download .txt</button>
+            <button id="asrSettingsBtn" class="small">Settings</button>
+          </div>
+
+          <div id="asrMessage" class="message" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- TTS Tab -->
+      <div id="tts-tab" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">Text Input</div>
+
+          <div class="form-group">
+            <label for="ttsTextInput">Text to synthesize:</label>
+            <textarea id="ttsTextInput" class="text-input" placeholder="Enter text to convert to speech..."></textarea>
+            <div class="char-count"><span id="charCount">0</span> characters</div>
+          </div>
+
+          <div class="form-group">
+            <label>Or upload a text file:</label>
+            <div class="file-input-wrapper">
+              <button id="ttsUploadBtn" type="button">Choose .txt file</button>
+              <span id="ttsFileName" style="color: var(--text-secondary); font-size: 0.85rem;">No file selected</span>
+              <input type="file" id="ttsFileInput" accept=".txt,text/plain">
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">Voice Settings</div>
+
+          <div class="form-group">
+            <label for="voiceSelect">Voice:</label>
+            <select id="voiceSelect">
+              <option value="">Loading voices...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="rateSlider">Speaking Rate:</label>
+            <div class="slider-container">
+              <span style="font-size: 0.8rem; color: var(--text-secondary);">Fast</span>
+              <input type="range" id="rateSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+              <span style="font-size: 0.8rem; color: var(--text-secondary);">Slow</span>
+              <span class="slider-value" id="rateValue">1.0x</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+              (length_scale: lower = faster, higher = slower)
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">Synthesis</div>
+
+          <div class="status-bar">
+            <div class="status">
+              <span class="status-dot" id="ttsStatusDot"></span>
+              <span id="ttsStatusText">Ready</span>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button id="synthesizeBtn" class="primary" disabled>Synthesize</button>
+            <button id="ttsClearBtn">Clear Text</button>
+          </div>
+        </div>
+
+        <div class="panel" id="ttsOutputPanel" style="display: none;">
+          <div class="panel-header">Output</div>
+
+          <div class="audio-container">
+            <audio id="ttsAudioPlayer" controls></audio>
+          </div>
+
+          <div class="output-controls">
+            <button id="ttsDownloadBtn">Download .wav</button>
+            <button id="ttsPlayBtn">Play</button>
+          </div>
+
+          <div id="ttsMessage" class="message" style="display: none;"></div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>Yap - Self-hosted speech tools</p>
+    </footer>
+  </div>
+
+  <!-- Addon panel (hidden by default) -->
+  <div class="addon-panel" id="addonPanel" style="display: none;">
+    <div class="addon-panel-header">
+      <span class="addon-panel-title">Add-ons</span>
+      <button class="addon-window-close" id="addonPanelClose">x</button>
+    </div>
+    <div class="addon-panel-list" id="addonPanelList"></div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

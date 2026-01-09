@@ -17,44 +17,59 @@ Self-hosted LAN web tools for speech-to-text (ASR) and text-to-speech (TTS).
 
 ## Overview
 
-Yap provides two self-hosted web applications:
+Yap provides a unified web application combining ASR (speech-to-text) and TTS (text-to-speech) in a single tabbed interface served from one domain.
 
-| Tool | Description | Backend |
-|------|-------------|---------|
-| **Quick Mic** (ASR) | Record audio and transcribe to text | OpenAI Whisper |
-| **Quick TTS** (TTS) | Convert text to natural speech | Piper TTS |
+| Feature | Description | Backend |
+|---------|-------------|---------|
+| **ASR** | Record audio and transcribe to text | OpenAI Whisper |
+| **TTS** | Convert text to natural speech | Piper TTS |
 
-Both tools run as Docker containers with a terminal-style dark UI, designed for private LAN use.
+The application runs as Docker containers with a terminal-style dark UI, designed for private LAN use.
+
+## Architecture
+
+Yap uses a **single-domain architecture** where:
+- UI is served at `https://APP_DOMAIN/`
+- ASR API is routed at `https://APP_DOMAIN/asr/*`
+- TTS API is routed at `https://APP_DOMAIN/tts/*`
+
+This is achieved via Caddy labels (production) or nginx proxy (local mode).
 
 ## Features
 
-### Quick Mic (ASR)
-- Browser-based audio recording
-- Live waveform visualization
-- Recording timer
-- Whisper-powered transcription
-- Copy/download transcript
-- Download original audio
+### ASR Tab
+- Browser-based multi-clip audio recording
+- Live waveform visualization with recording timer
+- Whisper-powered transcription with per-clip status
+- Flexible transcript copy modes (clean or with separators)
+- Per-clip copy/download buttons
+- Configurable transcript settings (spacing, cleanup)
+- Keyboard shortcut: Space to start/stop recording
 
-### Quick TTS
+### TTS Tab
 - Text input or file upload
-- Multiple voice selection
+- Multiple voice selection with preference persistence
 - Adjustable speaking rate
-- Audio playback and download
-- Media Session API support
+- Audio playback with Media Session API support
+- Download generated audio
+- Keyboard shortcut: Ctrl+Enter to synthesize
+
+### Add-ons
+- Non-modal draggable/resizable windows
+- Ollama Summarize: Summarize transcripts using local LLM
 
 ## Screenshots
 
 *(See `/docs/images/` for screenshot placeholders)*
 
-| Quick Mic | Quick TTS |
-|-----------|-----------|
+| ASR | TTS |
+|-----|-----|
 | ![ASR Screenshot](docs/images/asr-recording.png) | ![TTS Screenshot](docs/images/tts-idle.png) |
 
 ## Quick Start
 
 Yap supports **two run modes**:
-1. **Production mode** (default): Uses Caddy reverse proxy with automatic HTTPS
+1. **Production mode** (recommended): Uses Caddy reverse proxy with automatic HTTPS
 2. **Local mode**: Direct port access for testing without Caddy
 
 ### Prerequisites
@@ -74,21 +89,19 @@ cd quick-yap
 
 #### 2. Configure Environment
 
-Copy the root environment example:
-
 ```bash
-cp .env.example .env
+cp app/.env.example app/.env
+# Edit app/.env with your settings
 ```
 
-Edit `.env` to customize your setup:
+Key variables:
 
 ```bash
+# Single domain for unified UI
+APP_DOMAIN=app.localhost
+
 # Network
 CADDY_NETWORK=caddy
-
-# Domains
-ASR_DOMAIN=asr.yourdomain.com
-TTS_DOMAIN=tts.yourdomain.com
 
 # Model paths
 WHISPER_MODELS_PATH=/srv/yap/asr/models
@@ -102,8 +115,8 @@ ASR_MODEL=tiny.en
 #### 3. Create Model Directories
 
 ```bash
-sudo mkdir -p $WHISPER_MODELS_PATH
-sudo mkdir -p $PIPER_MODELS_PATH
+sudo mkdir -p /srv/yap/asr/models
+sudo mkdir -p /srv/yap/tts/models
 ```
 
 #### 4. Download TTS Voice Models
@@ -111,7 +124,7 @@ sudo mkdir -p $PIPER_MODELS_PATH
 The TTS service requires voice models to work. Download at least one:
 
 ```bash
-cd $PIPER_MODELS_PATH
+cd /srv/yap/tts/models
 
 # Recommended: British English Cori (high quality)
 wget https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/cori/high/en_GB-cori-high.onnx
@@ -137,72 +150,58 @@ make tts-model-cori  # Shows download commands
 # Create Caddy network (if not exists)
 docker network create caddy
 
-# Start ASR
-cd asr && docker compose up -d
-
-# Start TTS
-cd tts && docker compose up -d --build
+# Start the unified app
+cd app && docker compose up -d
 ```
 
 Or use the Makefile:
 
 ```bash
-make asr-up
-make tts-up
+make app-up
 ```
 
-Access via configured domains:
-- ASR: `https://asr.yourdomain.com`
-- TTS: `https://tts.yourdomain.com`
+Access at: `https://app.localhost` (or your configured `APP_DOMAIN`)
 
 **Local Mode (without Caddy):**
 
 ```bash
-# ASR on localhost:8080 (API on :9000)
-cd asr && docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
-
-# TTS on localhost:8081 (API on :5000)
-cd tts && docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+cd app
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
 ```
 
-Access via localhost:
-- ASR: `http://localhost:8080`
-- TTS: `http://localhost:8081`
+Or use the Makefile:
+
+```bash
+make app-local
+```
+
+Access at: `http://localhost:8080`
+
+Direct backend ports (for debugging):
+- ASR API: `http://localhost:9000`
+- TTS API: `http://localhost:5000`
+
+### Legacy Separate Deployments
+
+The original separate ASR and TTS deployments are still available in `asr/` and `tts/` folders. See those folders for standalone deployment instructions.
 
 ## Configuration
 
-### Setting Environment Variables
-
-To configure Yap, copy the example environment file and customize it:
-
-```bash
-cp .env.example .env
-# Edit .env with your settings
-```
-
-The `.env` file is used by docker-compose to set configuration values. Key variables include:
+### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `APP_DOMAIN` | Single domain for unified UI | `app.localhost` |
 | `CADDY_NETWORK` | Docker network for Caddy | `caddy` |
-| `ASR_DOMAIN` | ASR domain for Caddy | `asr.localhost` |
-| `TTS_DOMAIN` | TTS domain for Caddy | `tts.localhost` |
 | `WHISPER_MODELS_PATH` | Host path for Whisper models | `/srv/yap/asr/models` |
 | `PIPER_MODELS_PATH` | Host path for Piper voices | `/srv/yap/tts/models` |
 | `ASR_MODEL` | Whisper model size | `tiny.en` |
 | `ASR_ENGINE` | ASR engine | `faster_whisper` |
 | `ASR_DEVICE` | Compute device | `cuda` |
 
-**Note**: When testing endpoints with `curl`, use the literal hostname or export the variable:
-
-```bash
-# Either use the literal hostname:
-curl https://tts.localhost/health
-
-# Or export the variable first:
-export TTS_DOMAIN=tts.localhost
-curl https://$TTS_DOMAIN/health
-```
+For legacy separate deployments:
+| `ASR_DOMAIN` | ASR domain (legacy mode) | `asr.localhost` |
+| `TTS_DOMAIN` | TTS domain (legacy mode) | `tts.localhost` |
 
 ### Whisper Model Sizes
 
@@ -217,16 +216,31 @@ curl https://$TTS_DOMAIN/health
 ## Repository Structure
 
 ```
-quick-yap/
-├── asr/                    # Speech-to-Text (Quick Mic)
+yap/
+├── app/                       # Unified Application (recommended)
+│   ├── docker-compose.yml     # Production config with Caddy labels
+│   ├── docker-compose.local.yml # Local development override
+│   ├── .env.example           # Environment template
+│   ├── README.md              # Unified app documentation
+│   └── ui/                    # Static web UI
+│       ├── index.html         # Main HTML with tabs
+│       ├── favicon.svg        # Yak logo
+│       ├── config.js          # Optional config
+│       ├── nginx.conf         # Nginx config for local mode
+│       ├── css/styles.css     # Shared styles
+│       └── js/                # ES modules
+│           ├── main.js        # Tab router + bootstrap
+│           ├── asr.js         # ASR tab logic
+│           ├── tts.js         # TTS tab logic
+│           ├── addons.js      # Add-ons window manager
+│           └── util.js        # Utility functions
+├── asr/                       # Legacy Speech-to-Text (standalone)
 │   ├── docker-compose.yml
 │   ├── docker-compose.local.yml
 │   ├── .env.example
 │   ├── README.md
 │   └── ui/
-│       ├── index.html
-│       └── favicon.svg
-├── tts/                    # Text-to-Speech (Quick TTS)
+├── tts/                       # Text-to-Speech Backend + Legacy UI
 │   ├── docker-compose.yml
 │   ├── docker-compose.local.yml
 │   ├── Dockerfile
@@ -234,15 +248,12 @@ quick-yap/
 │   ├── .env.example
 │   ├── README.md
 │   └── ui/
-│       ├── index.html
-│       └── favicon.svg
 ├── docs/
 │   └── images/
-│       └── README.md
-├── .env.example           # Root configuration template
+├── .env.example               # Root configuration template
 ├── .gitignore
 ├── LICENSE
-├── Makefile              # Helper commands
+├── Makefile                   # Helper commands
 └── README.md
 ```
 
@@ -253,13 +264,20 @@ Common commands for managing Yap services:
 ```bash
 make help           # Show all available commands
 
-# ASR
+# Unified App (recommended)
+make app-up         # Start unified app (Caddy mode)
+make app-local      # Start unified app (local mode)
+make app-down       # Stop unified app
+make app-logs       # View app logs
+make app-restart    # Restart app
+
+# Legacy ASR (standalone)
 make asr-up         # Start ASR services
 make asr-down       # Stop ASR services
 make asr-logs       # View ASR logs
 make asr-restart    # Restart ASR
 
-# TTS
+# Legacy TTS (standalone)
 make tts-up         # Start TTS services
 make tts-down       # Stop TTS services
 make tts-logs       # View TTS logs

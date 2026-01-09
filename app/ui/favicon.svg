@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Yak head silhouette with horns - minimal single-color design -->
+  <path fill="#9b59b6" d="
+    M 8 20 
+    Q 4 12 8 6 
+    L 14 14 
+    Q 18 10 24 10 
+    L 28 8 
+    Q 32 6 36 8 
+    L 40 10 
+    Q 46 10 50 14 
+    L 56 6 
+    Q 60 12 56 20 
+    Q 58 26 56 32 
+    Q 54 42 48 48 
+    Q 44 52 40 54 
+    L 40 58 
+    Q 38 62 32 62 
+    Q 26 62 24 58 
+    L 24 54 
+    Q 20 52 16 48 
+    Q 10 42 8 32 
+    Q 6 26 8 20 
+    Z
+    M 22 32 
+    Q 24 30 26 32 
+    Q 24 34 22 32 
+    Z
+    M 38 32 
+    Q 40 30 42 32 
+    Q 40 34 38 32 
+    Z
+    M 28 44 
+    Q 32 46 36 44 
+    Q 32 48 28 44 
+    Z
+  "/>
+</svg>
