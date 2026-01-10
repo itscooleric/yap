@@ -319,7 +319,8 @@ function handleAudioFileUpload(file) {
 
   // Validate file type - check both MIME type and extension
   const validTypes = ['audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/flac', 'audio/x-flac'];
-  const fileExt = file.name.split('.').pop().toLowerCase();
+  const lastDotIndex = file.name.lastIndexOf('.');
+  const fileExt = lastDotIndex > 0 ? file.name.slice(lastDotIndex + 1).toLowerCase() : '';
   const validExts = ['mp3', 'wav', 'webm', 'ogg', 'm4a', 'flac'];
   const DEFAULT_MIME_TYPE = 'audio/wav';
   
