@@ -313,6 +313,90 @@ function updateClipStatus(id, status, transcript = null) {
   }
 }
 
+// Handle uploaded audio file
+function handleAudioFileUpload(file) {
+  if (!file) return;
+
+  // Validate file type - check both MIME type and extension
+  const validTypes = ['audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/flac', 'audio/x-flac'];
+  const lastDotIndex = file.name.lastIndexOf('.');
+  const fileExt = lastDotIndex > 0 ? file.name.slice(lastDotIndex + 1).toLowerCase() : '';
+  const validExts = ['mp3', 'wav', 'webm', 'ogg', 'm4a', 'flac'];
+  const DEFAULT_MIME_TYPE = 'audio/wav';
+  
+  if (!validTypes.includes(file.type) && !validExts.includes(fileExt)) {
+    showMessage('Invalid file type. Please upload an audio file.', 'error');
+    // Reset file input display
+    if (elements.fileName) {
+      elements.fileName.textContent = 'No file selected';
+    }
+    return;
+  }
+
+  // Get audio duration by loading the file in a temporary Audio element
+  // This allows us to display accurate clip duration in the UI
+  // If duration extraction fails, we fallback to 0 (unknown duration)
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const blob = new Blob([e.target.result], { type: file.type || DEFAULT_MIME_TYPE });
+    const tempUrl = URL.createObjectURL(blob);
+    const tempAudio = new Audio();
+    
+    const cleanup = () => {
+      URL.revokeObjectURL(tempUrl);
+    };
+    
+    tempAudio.onloadedmetadata = () => {
+      const durationMs = Math.floor(tempAudio.duration * 1000);
+      cleanup();
+      
+      // Add as clip
+      addClip(blob, file.type || DEFAULT_MIME_TYPE, durationMs);
+      
+      setStatus('done', 'File uploaded');
+      showMessage(`Uploaded: ${file.name}`, 'success');
+      
+      // Reset file input
+      if (elements.fileInput) {
+        elements.fileInput.value = '';
+      }
+      if (elements.fileName) {
+        elements.fileName.textContent = 'No file selected';
+      }
+    };
+    
+    tempAudio.onerror = () => {
+      // Fallback: if we can't get duration, use 0
+      cleanup();
+      addClip(blob, file.type || DEFAULT_MIME_TYPE, 0);
+      
+      setStatus('done', 'File uploaded');
+      showMessage(`Uploaded: ${file.name} (duration unknown)`, 'success');
+      
+      // Reset file input
+      if (elements.fileInput) {
+        elements.fileInput.value = '';
+      }
+      if (elements.fileName) {
+        elements.fileName.textContent = 'No file selected';
+      }
+    };
+    
+    tempAudio.src = tempUrl;
+  };
+  
+  reader.onerror = () => {
+    showMessage('Failed to read file', 'error');
+    setStatus('error', 'Upload failed');
+    // Reset file input display
+    if (elements.fileName) {
+      elements.fileName.textContent = 'No file selected';
+    }
+  };
+  
+  reader.readAsArrayBuffer(file);
+}
+
 // Recording
 async function startRecording() {
   try {
@@ -627,7 +711,10 @@ export function init(container) {
     canvas: container.querySelector('#waveform'),
     message: container.querySelector('#asrMessage'),
     clipsContainer: container.querySelector('#clipsContainer'),
-    clipsCount: container.querySelector('#clipsCount')
+    clipsCount: container.querySelector('#clipsCount'),
+    fileInput: container.querySelector('#asrFileInput'),
+    uploadBtn: container.querySelector('#asrUploadBtn'),
+    fileName: container.querySelector('#asrFileName')
   };
   
   if (elements.canvas) {
@@ -652,6 +739,21 @@ export function init(container) {
   elements.copySeparatorsBtn?.addEventListener('click', () => copyTranscript(true));
   elements.downloadTxtBtn?.addEventListener('click', downloadTranscript);
   elements.settingsBtn?.addEventListener('click', openSettingsPanel);
+
+  // File upload handlers
+  elements.uploadBtn?.addEventListener('click', () => elements.fileInput?.click());
+
+  elements.fileInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Show filename immediately for better UX
+      // Will be reset if validation fails in handleAudioFileUpload
+      if (elements.fileName) {
+        elements.fileName.textContent = file.name;
+      }
+      handleAudioFileUpload(file);
+    }
+  });
 
   // Clip actions handler
   elements.clipsContainer?.addEventListener('click', (e) => {
