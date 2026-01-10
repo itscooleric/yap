@@ -747,7 +747,9 @@ export function init(container) {
     if (file) {
       // Show filename immediately for better UX
       // Will be reset if validation fails in handleAudioFileUpload
-      elements.fileName.textContent = file.name;
+      if (elements.fileName) {
+        elements.fileName.textContent = file.name;
+      }
       handleAudioFileUpload(file);
     }
   });
