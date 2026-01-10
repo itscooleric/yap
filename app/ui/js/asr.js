@@ -317,8 +317,8 @@ function updateClipStatus(id, status, transcript = null) {
 function handleAudioFileUpload(file) {
   if (!file) return;
 
-  // Validate file type
-  const validTypes = ['audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/m4a', 'audio/flac', 'audio/x-flac'];
+  // Validate file type - check both MIME type and extension
+  const validTypes = ['audio/mpeg', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/flac', 'audio/x-flac'];
   const fileExt = file.name.split('.').pop().toLowerCase();
   const validExts = ['mp3', 'wav', 'webm', 'ogg', 'm4a', 'flac'];
   
@@ -327,15 +327,20 @@ function handleAudioFileUpload(file) {
     return;
   }
 
-  // Get audio duration by creating a temporary audio element
+  // Get audio duration by loading the file in a temporary Audio element
+  // This allows us to display accurate clip duration in the UI
+  // If duration extraction fails, we fallback to 0 (unknown duration)
   const reader = new FileReader();
   reader.onload = (e) => {
+    const blob = new Blob([e.target.result], { type: file.type || 'audio/wav' });
+    const tempUrl = URL.createObjectURL(blob);
     const tempAudio = new Audio();
+    
     tempAudio.onloadedmetadata = () => {
       const durationMs = Math.floor(tempAudio.duration * 1000);
+      URL.revokeObjectURL(tempUrl);
       
-      // Create blob and add as clip
-      const blob = new Blob([e.target.result], { type: file.type || 'audio/wav' });
+      // Add as clip
       addClip(blob, file.type || 'audio/wav', durationMs);
       
       setStatus('done', 'File uploaded');
@@ -352,7 +357,7 @@ function handleAudioFileUpload(file) {
     
     tempAudio.onerror = () => {
       // Fallback: if we can't get duration, use 0
-      const blob = new Blob([e.target.result], { type: file.type || 'audio/wav' });
+      URL.revokeObjectURL(tempUrl);
       addClip(blob, file.type || 'audio/wav', 0);
       
       setStatus('done', 'File uploaded');
@@ -367,7 +372,7 @@ function handleAudioFileUpload(file) {
       }
     };
     
-    tempAudio.src = URL.createObjectURL(new Blob([e.target.result], { type: file.type }));
+    tempAudio.src = tempUrl;
   };
   
   reader.onerror = () => {
