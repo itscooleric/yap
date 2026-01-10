@@ -727,8 +727,9 @@ export function init(container) {
   elements.recordBtn?.addEventListener('click', startRecording);
   elements.stopBtn?.addEventListener('click', stopRecording);
   elements.transcribeAllBtn?.addEventListener('click', transcribeAll);
-  elements.clearBtn?.addEventListener('click', () => {
-    if (confirm('Clear all clips and transcript?')) {
+  elements.clearBtn?.addEventListener('click', (e) => {
+    // Shift+Click bypasses confirmation
+    if (e.shiftKey || confirm('Clear all clips and transcript?')) {
       clearAllClips();
       showMessage('Cleared', 'success');
     }

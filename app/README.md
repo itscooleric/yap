@@ -21,7 +21,7 @@ app/
         ├── main.js           # Tab router and bootstrap
         ├── asr.js            # ASR tab logic
         ├── tts.js            # TTS tab logic
-        ├── addons.js         # Add-ons window manager
+        ├── addons.js         # Apps window manager
         └── util.js           # Utility functions
 ```
 
@@ -136,16 +136,19 @@ The unified app routes API requests through the same domain:
 - Download generated audio
 - Keyboard shortcut: Ctrl+Enter to synthesize
 
-### Add-ons
+### Apps (YAP Apps)
 - Non-modal draggable/resizable windows centered on screen
 - Cascade offset for multiple windows
-- Enable/disable add-ons via toggle switches in the Add-ons panel
-- Ollama Summarize: Summarize transcripts using local LLM
+- Enable/disable apps via toggle switches in the Apps panel
+- Built-in apps:
+  - Ollama Summarize: Summarize transcripts using local LLM
+  - Send (Webhook): Send transcript or conversation to webhooks
+- External apps loaded from manifest URL (iframe-based)
 
-### Add-on Settings (Gear Icon)
-- Settings gear icon appears only when enabled add-ons have configurable settings
-- Each add-on contributes its own settings schema (add-on-scoped, not global)
-- Ollama add-on settings: URL (default localhost:11434), Model (default llama3), Allow non-localhost URLs
+### App Settings (Gear Icon)
+- Settings gear icon appears only when enabled apps have configurable settings
+- Each app contributes its own settings schema (app-scoped, not global)
+- Ollama app settings: URL (default localhost:11434), Model (default llama3), Allow non-localhost URLs
 - Settings persist in localStorage (no file edits required)
 
 ## Troubleshooting

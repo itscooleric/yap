@@ -1158,3 +1158,148 @@ footer a:hover {
   background: var(--bg-tertiary);
   border-radius: 3px;
 }
+
+/* Iframe App Container */
+.iframe-app-container {
+  padding: 0;
+  height: 100%;
+}
+
+.iframe-app-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: var(--bg-tertiary);
+}
+
+/* Apps panel empty state */
+.addon-item-empty {
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* Send/Webhook App Styles */
+.send-webhook-app {
+  font-size: 0.85rem;
+}
+
+.send-webhook-app .webhook-section {
+  margin-bottom: 0.75rem;
+}
+
+.send-webhook-app .webhook-section label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.send-webhook-app .webhook-destination-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.send-webhook-app .webhook-select {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+}
+
+.send-webhook-app .webhook-mode-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.send-webhook-app .webhook-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  text-transform: none;
+}
+
+.send-webhook-app .webhook-radio-label input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+.send-webhook-app .webhook-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.send-webhook-app .webhook-output {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  max-height: 150px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.send-webhook-app .webhook-output pre {
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.send-webhook-app .webhook-error {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  border-radius: 3px;
+  color: var(--error);
+  font-size: 0.75rem;
+}
+
+.send-webhook-app .webhook-edit-header {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.send-webhook-app input[type="text"],
+.send-webhook-app input[type="url"],
+.send-webhook-app select,
+.send-webhook-app textarea {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+}
+
+.send-webhook-app input:focus,
+.send-webhook-app select:focus,
+.send-webhook-app textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.send-webhook-app textarea {
+  resize: vertical;
+  min-height: 40px;
+}

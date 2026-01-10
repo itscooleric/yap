@@ -747,7 +747,7 @@
         <div class="nav-links">
           <a href="#" class="active" id="navAsr">ASR</a>
           <a href="#" id="navTts">TTS</a>
-          <button class="small" id="addonsBtn">Add-ons</button>
+          <button class="small" id="addonsBtn">Apps</button>
         </div>
       </div>
       <p class="tagline">local automatic speech recognition</p>
@@ -815,14 +815,14 @@
     </main>
     
     <footer>
-      <p>Yap - Self-hosted speech tools</p>
+      <p>YAP local speech tools</p>
     </footer>
   </div>
 
-  <!-- Addon panel (hidden by default) -->
+  <!-- Apps panel (hidden by default) -->
   <div class="addon-panel" id="addonPanel" style="display: none;">
     <div class="addon-panel-header">
-      <span class="addon-panel-title">Add-ons</span>
+      <span class="addon-panel-title">Apps</span>
       <button class="addon-window-close" id="addonPanelClose">x</button>
     </div>
     <div class="addon-panel-list" id="addonPanelList"></div>
@@ -1367,8 +1367,9 @@
     });
 
     // ============ Clear button ============
-    clearBtn.addEventListener('click', () => {
-      if (confirm('Clear all clips and transcript?')) {
+    clearBtn.addEventListener('click', (e) => {
+      // Shift+Click bypasses confirmation
+      if (e.shiftKey || confirm('Clear all clips and transcript?')) {
         clearAllClips();
         showMessage('Cleared', 'success');
       }
@@ -1384,7 +1385,7 @@
       lineBreakMode = lineBreakModeSelect.value;
     });
 
-    // ============ Add-ons system ============
+    // ============ Apps system ============
     const addons = [
       {
         id: 'ollama-summarize',
@@ -1394,7 +1395,7 @@
       }
     ];
 
-    // Addon context for accessing app state
+    // App context for accessing app state
     function getAddonContext() {
       return {
         getClips: () => clips.slice(),

@@ -9,9 +9,9 @@
          --------
 ```
 
-**Self-hosted speech tools**
+**Local speech tools**
 
-Self-hosted LAN web tools for speech-to-text (ASR) and text-to-speech (TTS).
+Local LAN web tools for speech-to-text (ASR) and text-to-speech (TTS).
 
 ---
 
@@ -54,10 +54,13 @@ This is achieved via Caddy labels (production) or nginx proxy (local mode).
 - Download generated audio
 - Keyboard shortcut: Ctrl+Enter to synthesize
 
-### Add-ons
-- Non-modal draggable/resizable windows
-- **Ollama Summarize**: Summarize transcripts using local LLM (see [add-ons documentation](add-ons/README.md))
-- Extensible architecture for custom add-ons
+### Apps (YAP Apps)
+- Non-modal draggable/resizable app windows
+- **Built-in Apps**:
+  - **Ollama Summarize**: Summarize transcripts using local LLM (see [apps documentation](add-ons/README.md))
+  - **Send (Webhook)**: Send transcript or conversation data to webhooks (n8n, Make, custom endpoints)
+- **External Apps**: Load additional apps from a manifest URL (iframe-based, postMessage bridge)
+- Extensible architecture for custom apps
 
 ## Screenshots
 
@@ -233,7 +236,7 @@ yap/
 │           ├── main.js        # Tab router + bootstrap
 │           ├── asr.js         # ASR tab logic
 │           ├── tts.js         # TTS tab logic
-│           ├── addons.js      # Add-ons window manager
+│           ├── addons.js      # Apps window manager
 │           └── util.js        # Utility functions
 ├── asr/                       # Legacy Speech-to-Text (standalone)
 │   ├── docker-compose.yml
@@ -249,8 +252,8 @@ yap/
 │   ├── .env.example
 │   ├── README.md
 │   └── ui/
-├── add-ons/                   # Add-ons documentation and examples
-│   ├── README.md              # Add-ons guide
+├── add-ons/                   # Apps documentation and examples
+│   ├── README.md              # Apps guide
 │   └── ollama-summarize/      # Ollama integration docs
 ├── tests/                     # Automated tests
 │   ├── test_tts.py            # TTS endpoint tests
@@ -264,13 +267,51 @@ yap/
 └── README.md
 ```
 
-## Add-ons
+## Apps (YAP Apps)
 
-Yap includes an extensible add-on system for additional functionality. See the [add-ons documentation](add-ons/README.md) for details on:
+Yap includes an extensible apps system for additional functionality. See the [apps documentation](add-ons/README.md) for details on:
 
-- Using the built-in Ollama Summarize add-on
-- Creating custom add-ons
-- Add-on API reference
+- Using built-in apps (Ollama Summarize, Send/Webhook)
+- Loading external apps from a manifest URL
+- Creating custom apps
+- Apps API reference
+
+### Apps Configuration
+
+Configure apps in `app/ui/config.js`:
+
+```javascript
+window.__YAP_CONFIG = {
+  // External apps manifest URL (optional)
+  appsManifestUrl: 'https://example.com/yap-apps/manifest.json',
+  
+  // Allowed origins for iframe apps (REQUIRED for external apps)
+  appsAllowedOrigins: ['https://apps.example.com'],
+  
+  // Ollama configuration
+  ollamaUrl: 'http://localhost:11434',
+  ollamaModel: 'llama3'
+};
+```
+
+### External Apps Manifest
+
+External apps are loaded from a JSON manifest:
+
+```json
+{
+  "version": 1,
+  "apps": [
+    {
+      "id": "my-app",
+      "name": "My App",
+      "description": "Description of my app",
+      "type": "iframe",
+      "entryUrl": "https://apps.example.com/my-app/index.html"
+    }
+  ]
+}
+```
 
 ## Testing
 
@@ -507,4 +548,4 @@ MIT - See [LICENSE](LICENSE)
 
 ---
 
-*Yap - Self-hosted speech tools*
+*YAP - Local speech tools*
