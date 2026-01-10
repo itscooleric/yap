@@ -51,15 +51,12 @@
             <button id="stopBtn" disabled>Stop</button>
             <button id="transcribeAllBtn" disabled>Transcribe All</button>
             <button id="clearBtn" disabled>Clear</button>
+            <button id="asrUploadBtn" type="button">Choose audio file</button>
           </div>
 
-          <div class="form-group">
-            <label>Or upload audio file:</label>
-            <div class="file-input-wrapper">
-              <button id="asrUploadBtn" type="button">Choose audio file</button>
-              <span id="asrFileName" style="color: var(--text-secondary); font-size: 0.85rem;">No file selected</span>
-              <input type="file" id="asrFileInput" accept="audio/*,.mp3,.wav,.webm,.ogg,.m4a,.flac">
-            </div>
+          <div class="form-group" style="margin-top: 0.5rem;">
+            <span id="asrFileName" style="color: var(--text-secondary); font-size: 0.85rem;">No file selected</span>
+            <input type="file" id="asrFileInput" accept="audio/*,.mp3,.wav,.webm,.ogg,.m4a,.flac" style="display: none;">
           </div>
 
           <div class="clips-list" id="clipsList">
