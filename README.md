@@ -9,7 +9,7 @@
          --------
 ```
 
-**yap fast / listen faster**
+**Self-hosted speech tools**
 
 Self-hosted LAN web tools for speech-to-text (ASR) and text-to-speech (TTS).
 
@@ -56,7 +56,8 @@ This is achieved via Caddy labels (production) or nginx proxy (local mode).
 
 ### Add-ons
 - Non-modal draggable/resizable windows
-- Ollama Summarize: Summarize transcripts using local LLM
+- **Ollama Summarize**: Summarize transcripts using local LLM (see [add-ons documentation](add-ons/README.md))
+- Extensible architecture for custom add-ons
 
 ## Screenshots
 
@@ -248,6 +249,12 @@ yap/
 │   ├── .env.example
 │   ├── README.md
 │   └── ui/
+├── add-ons/                   # Add-ons documentation and examples
+│   ├── README.md              # Add-ons guide
+│   └── ollama-summarize/      # Ollama integration docs
+├── tests/                     # Automated tests
+│   ├── test_tts.py            # TTS endpoint tests
+│   └── requirements.txt       # Test dependencies
 ├── docs/
 │   └── images/
 ├── .env.example               # Root configuration template
@@ -256,6 +263,28 @@ yap/
 ├── Makefile                   # Helper commands
 └── README.md
 ```
+
+## Add-ons
+
+Yap includes an extensible add-on system for additional functionality. See the [add-ons documentation](add-ons/README.md) for details on:
+
+- Using the built-in Ollama Summarize add-on
+- Creating custom add-ons
+- Add-on API reference
+
+## Testing
+
+Automated tests are available in the `tests/` directory:
+
+```bash
+# Install test dependencies
+pip install -r tests/requirements.txt
+
+# Run TTS tests (requires TTS service running)
+pytest tests/test_tts.py -v
+```
+
+See [tests/README.md](tests/README.md) for more details on running tests.
 
 ## Makefile Helpers
 
@@ -343,23 +372,62 @@ The TTS backend will start successfully even without voice models, but it will d
 4. Test API endpoints (Caddy mode):
    ```bash
    # Check health endpoint
-   curl -k https://$TTS_DOMAIN/health
+   curl -k https://$APP_DOMAIN/tts/health
    # Should return: {"status":"ok","voices_count":1}
    
    # List available voices
-   curl -k https://$TTS_DOMAIN/voices
+   curl -k https://$APP_DOMAIN/tts/voices
    # Should return: ["en_GB-cori-high"]
    
-   # Check API docs endpoint
-   curl -k https://$TTS_DOMAIN/openapi.json | head
+   # Test synthesis (POST method)
+   curl -k https://$APP_DOMAIN/tts/synthesize/en_GB-cori-high \
+     -X POST \
+     -H "Content-Type: text/plain" \
+     -d "Hello world" \
+     --output test.wav
+   # Should create test.wav file
    ```
 
 5. Test API endpoints (Local mode):
    ```bash
+   curl http://localhost:8080/tts/health
+   curl http://localhost:8080/tts/voices
+   
+   # Test synthesis
+   curl http://localhost:8080/tts/synthesize/en_GB-cori-high \
+     -X POST \
+     -H "Content-Type: text/plain" \
+     -d "Hello world" \
+     --output test.wav
+   
+   # Or test directly on TTS service port (bypassing nginx)
    curl http://localhost:5000/health
    curl http://localhost:5000/voices
-   curl http://localhost:5000/openapi.json | head
    ```
+
+**TTS synthesis returns 405 Method Not Allowed**
+
+If you receive a 405 error when trying to synthesize:
+
+1. Verify the endpoint accepts POST requests:
+   ```bash
+   # Should work with POST (recommended)
+   curl -X POST http://localhost:5000/synthesize/VOICE_NAME \
+     -H "Content-Type: text/plain" \
+     -d "Test text"
+   
+   # Also works with GET
+   curl "http://localhost:5000/synthesize/VOICE_NAME?text=Test+text"
+   ```
+
+2. Check NGINX/Caddy logs for routing issues:
+   ```bash
+   docker compose logs yap-app-ui
+   ```
+
+3. Ensure no redirects are happening (redirects can change POST to GET):
+   - Check for trailing slash issues in URLs
+   - Verify proxy configuration preserves HTTP method
 
 **Voice files present but not detected**
 
@@ -439,4 +507,4 @@ MIT - See [LICENSE](LICENSE)
 
 ---
 
-*Yap - yap fast / listen faster*
+*Yap - Self-hosted speech tools*

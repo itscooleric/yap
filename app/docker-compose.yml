@@ -54,7 +54,7 @@ services:
       # TTS API routing - strip /tts prefix and proxy to piper-tts
       caddy.9_@tts.path: /tts /tts/*
       caddy.10_handle: "@tts"
-      caddy.10_handle.rewrite: "* {http.request.uri.path.strip_prefix:/tts}"
+      caddy.10_handle.uri: "strip_prefix /tts"
       caddy.10_handle.reverse_proxy: "piper-tts:5000"
       
       # Default: serve static UI
