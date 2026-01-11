@@ -1303,3 +1303,142 @@ footer a:hover {
   resize: vertical;
   min-height: 40px;
 }
+
+/* TTS Input Header with toggle */
+.tts-input-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.tts-preview-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: none;
+}
+
+.toggle-label-inline input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
+
+/* Markdown Preview */
+.markdown-preview {
+  width: 100%;
+  min-height: 120px;
+  max-height: 300px;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4 {
+  color: var(--accent);
+  margin: 0.75rem 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.markdown-preview h1 { font-size: 1.3rem; }
+.markdown-preview h2 { font-size: 1.15rem; }
+.markdown-preview h3 { font-size: 1rem; }
+.markdown-preview h4 { font-size: 0.9rem; }
+
+.markdown-preview p {
+  margin: 0 0 0.75rem 0;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: 0 0 0.75rem 1.5rem;
+  padding: 0;
+}
+
+.markdown-preview li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-preview code {
+  background: var(--bg-secondary);
+  padding: 0.15rem 0.35rem;
+  border-radius: 2px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 0.8rem;
+}
+
+.markdown-preview pre {
+  background: var(--bg-secondary);
+  padding: 0.75rem;
+  border-radius: 3px;
+  overflow-x: auto;
+  margin: 0 0 0.75rem 0;
+}
+
+.markdown-preview pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.markdown-preview blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem 0 0.5rem 1rem;
+  color: var(--text-secondary);
+  background: rgba(255, 41, 117, 0.05);
+}
+
+.markdown-preview strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.markdown-preview em {
+  font-style: italic;
+}
+
+.markdown-preview a {
+  color: var(--accent-secondary);
+  text-decoration: none;
+}
+
+.markdown-preview a:hover {
+  text-decoration: underline;
+}
+
+.markdown-preview hr {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 1rem 0;
+}
+
+/* Read-along highlighting */
+.markdown-preview .chunk,
+.text-input-chunks .chunk {
+  transition: background-color 0.2s ease;
+  border-radius: 2px;
+  padding: 2px 0;
+}
+
+.markdown-preview .chunk.active,
+.text-input-chunks .chunk.active {
+  background: rgba(255, 41, 117, 0.2);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
