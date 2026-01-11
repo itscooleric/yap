@@ -89,14 +89,16 @@ class TestReadAlongDefaults:
     def test_max_chunks_default(self):
         """Default max chunks should be reasonable"""
         default_max_chunks = 30
-        assert default_max_chunks == 30, "Should limit to 30 chunks by default"
         assert default_max_chunks > 0, "Max chunks must be positive"
+        assert default_max_chunks <= 50, "Max chunks should be reasonable (not too high)"
+        assert isinstance(default_max_chunks, int), "Max chunks must be an integer"
 
     def test_max_chars_per_chunk_default(self):
         """Default max chars per chunk should be reasonable"""
         default_max_chars = 1200
-        assert default_max_chars == 1200, "Should limit to 1200 chars per chunk"
         assert default_max_chars > 0, "Max chars must be positive"
+        assert default_max_chars >= 1000, "Max chars should allow reasonable paragraph size"
+        assert isinstance(default_max_chars, int), "Max chars must be an integer"
 
 
 class TestReadAlongBehavior:

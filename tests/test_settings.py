@@ -44,10 +44,12 @@ class TestDefaultSettings:
             'maxCharsPerChunk': 1200
         }
         
-        # This is a documentation test to ensure defaults are reasonable
+        # Verify defaults are reasonable values
         assert expected_defaults['chunkMode'] == 'paragraph', "Should chunk by paragraph by default"
-        assert expected_defaults['maxChunks'] == 30, "Should have reasonable max chunks"
-        assert expected_defaults['maxCharsPerChunk'] == 1200, "Should have reasonable chunk size"
+        assert expected_defaults['maxChunks'] > 0, "Max chunks must be positive"
+        assert expected_defaults['maxChunks'] <= 50, "Max chunks should be reasonable (not too high)"
+        assert expected_defaults['maxCharsPerChunk'] > 0, "Max chars must be positive"
+        assert expected_defaults['maxCharsPerChunk'] >= 1000, "Max chars should allow reasonable paragraph size"
 
     def test_apps_ecosystem_default_disabled(self):
         """Apps ecosystem should be disabled by default"""

@@ -70,7 +70,7 @@ class TestExporterGitLabCommit:
         """GitLab commit should validate required fields"""
         # Missing required fields
         payload = {
-            "project_id": "test/repo"
+            "project_id": "test/repo",
             # Missing file_path, branch, payload
         }
         
@@ -118,7 +118,7 @@ class TestExporterGitHubCommit:
         """GitHub commit should validate required fields"""
         # Missing required fields
         payload = {
-            "project_id": "owner/repo"
+            "project_id": "owner/repo",
             # Missing file_path, branch, payload
         }
         
