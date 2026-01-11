@@ -3,6 +3,7 @@
 
 import { asr } from './asr.js';
 import { tts } from './tts.js';
+import * as data from './data.js';
 import { initAddonPanel } from './addons.js';
 
 // App state
@@ -13,7 +14,8 @@ let ttsEnabled = true;
 // Tab elements
 const tabs = {
   asr: null,
-  tts: null
+  tts: null,
+  data: null
 };
 
 // Show message (global helper)
@@ -127,16 +129,17 @@ function setupRecordingIndicator() {
 // Handle hash-based routing for deep links
 function handleHashRoute() {
   const hash = window.location.hash.replace('#', '');
-  if (hash === 'asr' || hash === 'tts') {
+  if (hash === 'asr' || hash === 'tts' || hash === 'data') {
     switchTab(hash);
   }
 }
 
 // Initialize application
-function init() {
+async function init() {
   // Cache tab elements
   tabs.asr = document.getElementById('asr-tab');
   tabs.tts = document.getElementById('tts-tab');
+  tabs.data = document.getElementById('data-tab');
   
   // Initialize ASR
   if (tabs.asr) {
@@ -146,6 +149,11 @@ function init() {
   // Initialize TTS
   if (tabs.tts) {
     tts.init(tabs.tts);
+  }
+  
+  // Initialize Data/Metrics tab
+  if (tabs.data) {
+    await data.init(tabs.data);
   }
   
   // Initialize addon panel and settings

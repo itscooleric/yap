@@ -21,6 +21,7 @@
         <nav class="nav-tabs">
           <button data-tab="asr" class="active">ASR</button>
           <button data-tab="tts">TTS</button>
+          <button data-tab="data" id="dataTabBtn" style="display: none;">Data</button>
           <button id="addonsBtn">Apps</button>
           <button id="settingsBtn" class="settings-btn" title="Settings">Settings</button>
         </nav>
@@ -134,16 +135,6 @@
               (length_scale: lower = faster, higher = slower)
             </div>
           </div>
-          
-          <div class="form-group">
-            <div class="toggle-container">
-              <input type="checkbox" id="ttsReadAlongToggle">
-              <label for="ttsReadAlongToggle" style="margin: 0; text-transform: none; font-size: 0.85rem; color: var(--text-primary);">Read-along mode</label>
-            </div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">
-              Highlight paragraphs as they play
-            </div>
-          </div>
         </div>
 
         <div class="panel">
@@ -170,12 +161,106 @@
           </div>
 
           <div class="output-controls">
-            <button id="ttsDownloadBtn">Download .wav</button>
             <button id="ttsPlayBtn">Play</button>
+            <button id="ttsPlayReadAlongBtn" class="secondary">Play with Read-Along</button>
+            <button id="ttsDownloadBtn">Download .wav</button>
           </div>
 
           <div id="ttsMessage" class="message" style="display: none;"></div>
         </div>
+      </div>
+
+      <!-- Read-Along Panel (modal) -->
+      <div id="readAlongPanel" class="read-along-panel" style="display: none;">
+        <div class="read-along-header">
+          <span class="read-along-title">Read-Along</span>
+          <div class="read-along-controls">
+            <button id="readAlongPauseBtn" class="small">Pause</button>
+            <button id="readAlongStopBtn" class="small">Stop</button>
+            <button id="readAlongCloseBtn" class="small">✕</button>
+          </div>
+        </div>
+        <div class="read-along-status" id="readAlongStatus">
+          <span id="readAlongProgress">Chunk 0 / 0</span>
+        </div>
+        <div class="read-along-content" id="readAlongContent">
+          <!-- Chunks will be rendered here -->
+        </div>
+      </div>
+
+      <!-- Data Tab (Metrics/History) -->
+      <div id="data-tab" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">Metrics Summary</div>
+          
+          <div id="metricsDisabledNotice" class="notice">
+            <p>Metrics collection is disabled.</p>
+            <p class="notice-hint">Enable it by setting <code>METRICS_ENABLED=true</code> in your environment.</p>
+          </div>
+          
+          <div id="metricsSummary" style="display: none;">
+            <div class="metrics-range-selector">
+              <button class="range-btn active" data-range="today">Today</button>
+              <button class="range-btn" data-range="7d">7 Days</button>
+              <button class="range-btn" data-range="30d">30 Days</button>
+              <button class="range-btn" data-range="all">All</button>
+            </div>
+            
+            <div class="metrics-cards">
+              <div class="metric-card">
+                <div class="metric-value" id="metricAsrRecorded">0</div>
+                <div class="metric-label">Minutes Recorded</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value" id="metricAsrTranscribed">0</div>
+                <div class="metric-label">Minutes Transcribed</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value" id="metricTtsGenerated">0</div>
+                <div class="metric-label">TTS Minutes</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value" id="metricTotalEvents">0</div>
+                <div class="metric-label">Total Events</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="panel" id="metricsHistoryPanel" style="display: none;">
+          <div class="panel-header">
+            Event History
+            <div class="panel-actions">
+              <button class="small" id="exportHistoryBtn">Export JSON</button>
+              <button class="small danger" id="clearHistoryBtn">Clear History</button>
+            </div>
+          </div>
+          
+          <div class="history-table-container">
+            <table class="history-table" id="historyTable">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Duration</th>
+                  <th>Chars</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr><td colspan="5" class="no-data">No events recorded</td></tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="pagination" id="historyPagination">
+            <button class="small" id="historyPrevBtn" disabled>Previous</button>
+            <span id="historyPageInfo">Page 1</span>
+            <button class="small" id="historyNextBtn" disabled>Next</button>
+          </div>
+        </div>
+        
+        <div id="dataMessage" class="message" style="display: none;"></div>
       </div>
     </main>
 

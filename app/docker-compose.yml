@@ -57,8 +57,12 @@ services:
       caddy.10_handle.uri: "strip_prefix /tts"
       caddy.10_handle.reverse_proxy: "piper-tts:5000"
       
+      # Metrics API routing - proxy to yap-metrics
+      caddy.11_@metrics.path: /api/metrics /api/metrics/*
+      caddy.12_reverse_proxy: "@metrics yap-metrics:8091"
+      
       # Default: serve static UI
-      caddy.11_reverse_proxy: "{{upstreams 80}}"
+      caddy.13_reverse_proxy: "{{upstreams 80}}"
 
   # Whisper ASR Backend
   whisper-asr:
@@ -97,6 +101,29 @@ services:
       - PIPER_MODELS_PATH=/models
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Metrics Service (optional, disabled by default)
+  yap-metrics:
+    build:
+      context: ../services/yap-metrics
+      dockerfile: Dockerfile
+    container_name: yap-metrics
+    restart: unless-stopped
+    networks: [caddy]
+    volumes:
+      - ${METRICS_DATA_PATH:-./data/metrics}:/data
+    environment:
+      - METRICS_ENABLED=${METRICS_ENABLED:-false}
+      - METRICS_STORE_TEXT=${METRICS_STORE_TEXT:-false}
+      - METRICS_RETENTION_DAYS=${METRICS_RETENTION_DAYS:-30}
+      - METRICS_MAX_EVENTS=${METRICS_MAX_EVENTS:-5000}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:*,https://localhost:*}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8091/health"]
       interval: 30s
       timeout: 10s
       retries: 3

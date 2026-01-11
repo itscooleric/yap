@@ -1,6 +1,6 @@
 // Yap - TTS Tab (Text-to-Speech)
 // Text input, voice selection, synthesis, and audio playback
-// Includes markdown preview and read-along mode
+// Includes markdown preview and dedicated read-along panel
 
 import { util } from './util.js';
 
@@ -9,18 +9,19 @@ let voices = [];
 let currentAudioUrl = null;
 let currentAudioBlob = null;
 let markdownPreviewEnabled = false;
-let readAlongEnabled = false;
 
 // Read-along state
 let readAlongChunks = [];
 let currentChunkIndex = -1;
+let chunkAudioBlobs = [];
 let chunkAudioUrls = [];
 let isReadAlongPlaying = false;
+let isReadAlongPaused = false;
+let readAlongAudio = null;
 
 // Settings (persisted)
 let ttsSettings = {
   markdownPreview: false,
-  readAlong: false,
   chunkMode: 'paragraph', // 'paragraph' or 'line'
   maxChunks: 30,
   maxCharsPerChunk: 1200
@@ -33,19 +34,16 @@ let elements = {};
 function loadSettings() {
   ttsSettings = {
     markdownPreview: util.storage.get('settings.tts.markdownPreview', false),
-    readAlong: util.storage.get('settings.tts.readAlong', false),
     chunkMode: util.storage.get('settings.tts.chunkMode', 'paragraph'),
     maxChunks: util.storage.get('settings.tts.maxChunks', 30),
     maxCharsPerChunk: util.storage.get('settings.tts.maxCharsPerChunk', 1200)
   };
   markdownPreviewEnabled = ttsSettings.markdownPreview;
-  readAlongEnabled = ttsSettings.readAlong;
 }
 
 // Save settings
 function saveSettings() {
   util.storage.set('settings.tts.markdownPreview', ttsSettings.markdownPreview);
-  util.storage.set('settings.tts.readAlong', ttsSettings.readAlong);
   util.storage.set('settings.tts.chunkMode', ttsSettings.chunkMode);
   util.storage.set('settings.tts.maxChunks', ttsSettings.maxChunks);
   util.storage.set('settings.tts.maxCharsPerChunk', ttsSettings.maxCharsPerChunk);
@@ -360,8 +358,8 @@ async function synthesizeChunk(text, voice, lengthScale) {
   return await response.blob();
 }
 
-// Read-along synthesis (chunk by chunk)
-async function synthesizeReadAlong() {
+// Open read-along panel and start chunk-by-chunk synthesis + playback
+async function startReadAlong() {
   const text = elements.textInput.value.trim();
   const voice = elements.voiceSelect.value;
   const lengthScale = elements.rateSlider.value;
@@ -377,8 +375,8 @@ async function synthesizeReadAlong() {
   // Check limits
   const check = checkChunkLimits(chunks);
   if (!check.valid) {
-    showMessage(check.message, 'error');
-    return;
+    const proceed = confirm(check.message + '\n\nProceed anyway?');
+    if (!proceed) return;
   }
   
   if (chunks.length === 0) {
@@ -386,90 +384,251 @@ async function synthesizeReadAlong() {
     return;
   }
 
-  setStatus('processing', `Synthesizing ${chunks.length} chunks...`);
-  elements.synthesizeBtn.disabled = true;
-  
   // Cleanup previous audio
-  chunkAudioUrls.forEach(url => URL.revokeObjectURL(url));
-  chunkAudioUrls = [];
+  cleanupReadAlongAudio();
   readAlongChunks = chunks;
+  chunkAudioBlobs = [];
+  chunkAudioUrls = [];
+  currentChunkIndex = -1;
+  isReadAlongPlaying = true;
+  isReadAlongPaused = false;
   
+  // Open read-along panel
+  openReadAlongPanel();
+  renderReadAlongChunks();
+  updateReadAlongProgress(0, chunks.length);
+  
+  // Start synthesis and playback
   try {
-    // Synthesize all chunks
     for (let i = 0; i < chunks.length; i++) {
-      setStatus('processing', `Synthesizing chunk ${i + 1}/${chunks.length}...`);
+      if (!isReadAlongPlaying) break; // User stopped
+      
+      updateReadAlongProgress(i + 1, chunks.length, 'synthesizing');
+      
       const blob = await synthesizeChunk(chunks[i], voice, lengthScale);
+      chunkAudioBlobs.push(blob);
       const url = URL.createObjectURL(blob);
       chunkAudioUrls.push(url);
+      
+      // Play this chunk if we're still playing
+      if (isReadAlongPlaying && !isReadAlongPaused) {
+        // Wait for previous chunk to finish before playing next
+        if (i === 0 || (readAlongAudio && readAlongAudio.ended)) {
+          await playChunk(i);
+        }
+      }
     }
     
-    // Update markdown preview with chunk highlights
-    updateMarkdownPreview();
-    
-    elements.outputPanel.style.display = 'block';
-    setStatus('done', 'Ready to play');
-    showMessage(`${chunks.length} chunks ready`, 'success');
-    
-    // Start playback
-    playReadAlong();
+    // If all chunks synthesized, continue playing remaining
+    if (isReadAlongPlaying) {
+      await playRemainingChunks();
+    }
     
   } catch (err) {
-    console.error('Read-along synthesis error:', err);
-    setStatus('error', 'Error');
-    showMessage(`Synthesis failed: ${err.message}`, 'error');
-  } finally {
-    elements.synthesizeBtn.disabled = false;
-    updateSynthesizeButton();
+    console.error('Read-along error:', err);
+    showMessage(`Read-along failed: ${err.message}`, 'error');
+    stopReadAlong();
   }
 }
 
-// Play read-along chunks sequentially
-function playReadAlong() {
-  if (chunkAudioUrls.length === 0) return;
-  
-  isReadAlongPlaying = true;
-  currentChunkIndex = 0;
-  
-  function playNextChunk() {
-    if (currentChunkIndex >= chunkAudioUrls.length) {
-      // Done playing all chunks
-      highlightChunk(-1);
-      isReadAlongPlaying = false;
-      setStatus('done', 'Playback complete');
+// Play a single chunk
+function playChunk(index) {
+  return new Promise((resolve, reject) => {
+    if (index >= chunkAudioUrls.length) {
+      resolve();
       return;
     }
     
-    highlightChunk(currentChunkIndex);
-    elements.audioPlayer.src = chunkAudioUrls[currentChunkIndex];
+    currentChunkIndex = index;
+    highlightReadAlongChunk(index);
+    updateReadAlongProgress(index + 1, readAlongChunks.length, 'playing');
     
-    elements.audioPlayer.onended = () => {
-      currentChunkIndex++;
-      playNextChunk();
+    readAlongAudio = new Audio(chunkAudioUrls[index]);
+    
+    readAlongAudio.onended = () => {
+      markChunkCompleted(index);
+      resolve();
     };
     
-    elements.audioPlayer.play().catch(err => {
-      console.error('Playback error:', err);
-      isReadAlongPlaying = false;
-    });
-  }
-  
-  playNextChunk();
+    readAlongAudio.onerror = (err) => {
+      console.error('Audio playback error:', err);
+      reject(new Error('Audio playback failed'));
+    };
+    
+    readAlongAudio.play().catch(reject);
+  });
 }
 
-// Stop read-along playback
+// Play remaining chunks after synthesis
+async function playRemainingChunks() {
+  for (let i = currentChunkIndex + 1; i < chunkAudioUrls.length; i++) {
+    if (!isReadAlongPlaying) break;
+    
+    while (isReadAlongPaused && isReadAlongPlaying) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    
+    if (!isReadAlongPlaying) break;
+    
+    await playChunk(i);
+  }
+  
+  if (isReadAlongPlaying) {
+    // Finished all chunks
+    updateReadAlongProgress(readAlongChunks.length, readAlongChunks.length, 'complete');
+    isReadAlongPlaying = false;
+  }
+}
+
+// Open read-along panel
+function openReadAlongPanel() {
+  const panel = document.getElementById('readAlongPanel');
+  if (panel) {
+    panel.style.display = 'flex';
+  }
+}
+
+// Close read-along panel
+function closeReadAlongPanel() {
+  const panel = document.getElementById('readAlongPanel');
+  if (panel) {
+    panel.style.display = 'none';
+  }
+}
+
+// Render chunks in read-along panel
+function renderReadAlongChunks() {
+  const content = document.getElementById('readAlongContent');
+  if (!content) return;
+  
+  content.innerHTML = readAlongChunks.map((chunk, i) => `
+    <div class="read-along-chunk" data-chunk="${i}">
+      <div class="read-along-chunk-number">Paragraph ${i + 1}</div>
+      ${escapeHtml(chunk)}
+    </div>
+  `).join('');
+}
+
+// Highlight current chunk
+function highlightReadAlongChunk(index) {
+  const content = document.getElementById('readAlongContent');
+  if (!content) return;
+  
+  // Remove active from all
+  content.querySelectorAll('.read-along-chunk.active').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Add active to current
+  const current = content.querySelector(`[data-chunk="${index}"]`);
+  if (current) {
+    current.classList.add('active');
+    current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// Mark chunk as completed
+function markChunkCompleted(index) {
+  const content = document.getElementById('readAlongContent');
+  if (!content) return;
+  
+  const chunk = content.querySelector(`[data-chunk="${index}"]`);
+  if (chunk) {
+    chunk.classList.add('completed');
+    chunk.classList.remove('active');
+  }
+}
+
+// Update progress display
+function updateReadAlongProgress(current, total, status = '') {
+  const progress = document.getElementById('readAlongProgress');
+  if (progress) {
+    let text = `Chunk ${current} / ${total}`;
+    if (status === 'synthesizing') text += ' (synthesizing...)';
+    else if (status === 'playing') text += ' (playing)';
+    else if (status === 'complete') text = 'Complete';
+    progress.textContent = text;
+  }
+}
+
+// Pause read-along
+function pauseReadAlong() {
+  if (readAlongAudio && !readAlongAudio.paused) {
+    readAlongAudio.pause();
+    isReadAlongPaused = true;
+    updatePauseButton(true);
+  } else if (isReadAlongPaused) {
+    readAlongAudio?.play();
+    isReadAlongPaused = false;
+    updatePauseButton(false);
+  }
+}
+
+// Update pause button text
+function updatePauseButton(isPaused) {
+  const btn = document.getElementById('readAlongPauseBtn');
+  if (btn) {
+    btn.textContent = isPaused ? 'Resume' : 'Pause';
+  }
+}
+
+// Stop read-along
 function stopReadAlong() {
   isReadAlongPlaying = false;
-  elements.audioPlayer.pause();
-  highlightChunk(-1);
+  isReadAlongPaused = false;
+  
+  if (readAlongAudio) {
+    readAlongAudio.pause();
+    readAlongAudio = null;
+  }
+  
+  currentChunkIndex = -1;
+  updatePauseButton(false);
+}
+
+// Cleanup read-along audio
+function cleanupReadAlongAudio() {
+  stopReadAlong();
+  chunkAudioUrls.forEach(url => URL.revokeObjectURL(url));
+  chunkAudioUrls = [];
+  chunkAudioBlobs = [];
+  readAlongChunks = [];
+}
+
+// Escape HTML for safe display
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Setup read-along panel controls
+function setupReadAlongPanelControls() {
+  const pauseBtn = document.getElementById('readAlongPauseBtn');
+  const stopBtn = document.getElementById('readAlongStopBtn');
+  const closeBtn = document.getElementById('readAlongCloseBtn');
+  
+  pauseBtn?.addEventListener('click', pauseReadAlong);
+  stopBtn?.addEventListener('click', () => {
+    stopReadAlong();
+    closeReadAlongPanel();
+  });
+  closeBtn?.addEventListener('click', () => {
+    stopReadAlong();
+    closeReadAlongPanel();
+  });
+}
+
+// Play read-along chunks sequentially (legacy - kept for compatibility)
+function playReadAlong() {
+  startReadAlong();
 }
 
 // Synthesize text to speech (standard mode)
 async function synthesize() {
-  // Use read-along mode if enabled
-  if (readAlongEnabled) {
-    return synthesizeReadAlong();
-  }
-  
   const text = elements.textInput.value.trim();
   const voice = elements.voiceSelect.value;
   const lengthScale = elements.rateSlider.value;
@@ -551,22 +710,17 @@ export function init(container) {
     audioPlayer: container.querySelector('#ttsAudioPlayer'),
     downloadBtn: container.querySelector('#ttsDownloadBtn'),
     playBtn: container.querySelector('#ttsPlayBtn'),
+    playReadAlongBtn: container.querySelector('#ttsPlayReadAlongBtn'),
     statusDot: container.querySelector('#ttsStatusDot'),
     statusText: container.querySelector('#ttsStatusText'),
     message: container.querySelector('#ttsMessage'),
     markdownPreview: container.querySelector('#ttsMarkdownPreview'),
-    readAlongToggle: container.querySelector('#ttsReadAlongToggle'),
     viewPlainBtn: container.querySelector('#ttsViewPlain'),
     viewMarkdownBtn: container.querySelector('#ttsViewMarkdown')
   };
 
   // Load voices
   loadVoices();
-
-  // Initialize read-along toggle from settings
-  if (elements.readAlongToggle) {
-    elements.readAlongToggle.checked = readAlongEnabled;
-  }
   
   // Initialize view toggle buttons
   updateViewToggleButtons();
@@ -604,13 +758,13 @@ export function init(container) {
     updateMarkdownPreview();
   });
   
-  // Read-along toggle
-  elements.readAlongToggle?.addEventListener('change', () => {
-    readAlongEnabled = elements.readAlongToggle.checked;
-    ttsSettings.readAlong = readAlongEnabled;
-    saveSettings();
-    updateMarkdownPreview();
+  // Play with Read-Along button
+  elements.playReadAlongBtn?.addEventListener('click', () => {
+    startReadAlong();
   });
+  
+  // Setup read-along panel controls
+  setupReadAlongPanelControls();
 
   // File upload
   elements.uploadBtn?.addEventListener('click', () => elements.fileInput?.click());
