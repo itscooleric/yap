@@ -92,15 +92,14 @@
           <div class="form-group">
             <div class="tts-input-header">
               <label for="ttsTextInput">Text to synthesize:</label>
-              <div class="tts-preview-toggle">
-                <label class="toggle-label-inline">
-                  <input type="checkbox" id="ttsMarkdownToggle">
-                  <span>Markdown preview</span>
-                </label>
+              <div class="tts-view-toggle">
+                <button type="button" class="view-toggle-btn active" id="ttsViewPlain">Plain</button>
+                <button type="button" class="view-toggle-btn" id="ttsViewMarkdown">Markdown</button>
               </div>
             </div>
             <textarea id="ttsTextInput" class="text-input" placeholder="Enter text to convert to speech..."></textarea>
             <div id="ttsMarkdownPreview" class="markdown-preview" style="display: none;"></div>
+            <input type="checkbox" id="ttsMarkdownToggle" style="display: none;">
             <div class="char-count"><span id="charCount">0</span> characters</div>
           </div>
 

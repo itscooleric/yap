@@ -124,22 +124,8 @@ export function validateUrl(url, requireLocalhost = true) {
 }
 
 // Built-in apps registry - each app can declare a settingsSchema
-const builtInApps = [
-  {
-    id: 'ollama-summarize',
-    name: 'Ollama Summarize',
-    description: 'Summarize transcript with Ollama',
-    type: 'built-in',
-    render: renderOllamaSummarize,
-    context: 'asr',
-    settingsTitle: 'Ollama',
-    settingsSchema: [
-      { key: 'ollamaUrl', label: 'Ollama URL', type: 'url', default: 'http://localhost:11434', localOnly: true },
-      { key: 'ollamaModel', label: 'Model', type: 'string', default: 'llama3' },
-      { key: 'allowNonLocalhost', label: 'Allow non-localhost URLs', type: 'boolean', default: false, hint: 'Enable to connect to remote services' }
-    ]
-  }
-];
+// Note: Ollama Summarize has been removed per user request (risky free-text model name, summarize not desired)
+const builtInApps = [];
 
 // External apps loaded from manifest
 let externalApps = [];
@@ -463,25 +449,20 @@ export function initAppPanel() {
 // Backward-compatible alias
 export const initAddonPanel = initAppPanel;
 
-// Update settings button visibility based on enabled apps with settings
+// Update settings button visibility
+// Settings button is always visible since ASR settings are always available
 function updateSettingsButtonVisibility() {
   const settingsBtn = document.getElementById('settingsBtn');
   if (!settingsBtn) return;
   
-  const enabledAppsWithSettings = getEnabledApps().filter(a => a.settingsSchema && a.settingsSchema.length > 0);
-  settingsBtn.style.display = enabledAppsWithSettings.length > 0 ? '' : 'none';
+  // Always show settings button - ASR settings are always available
+  settingsBtn.style.display = '';
 }
 
-// Initialize settings panel
+// Initialize settings panel (legacy - main.js now handles the Settings button)
 export function initSettingsPanel() {
-  const settingsBtn = document.getElementById('settingsBtn');
-  if (!settingsBtn) return;
-
-  settingsBtn.addEventListener('click', () => {
-    openSettingsWindow();
-  });
-  
-  // Update visibility based on enabled addons
+  // Settings button click handler is set up in main.js
+  // Just ensure the button is visible
   updateSettingsButtonVisibility();
 }
 
@@ -655,123 +636,7 @@ function renderSettingsPanel(container, ctx) {
   });
 }
 
-// Maximum prompt length for Ollama requests
-const MAX_OLLAMA_PROMPT_LENGTH = 50000;
-
-// Ollama Summarize addon renderer
-function renderOllamaSummarize(container, ctx) {
-  container.classList.add('ollama-addon');
-
-  // Get config from runtime settings (defaults come from settingsSchema via getConfig)
-  const ollamaUrl = getConfig('ollamaUrl');
-  const ollamaModel = getConfig('ollamaModel');
-
-  container.innerHTML = `
-    <div class="addon-info">
-      Using: ${ollamaModel} at ${ollamaUrl}
-    </div>
-    <div style="margin-bottom: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);">
-      Prompt:
-    </div>
-    <textarea id="ollamaPrompt" placeholder="Enter a prompt, e.g.: Summarize the following transcript:">Summarize the following transcript:</textarea>
-    <div class="btn-row">
-      <button class="small primary" id="ollamaSummarizeBtn">Summarize</button>
-      <button class="small" id="ollamaReplaceBtn" disabled>Replace transcript</button>
-    </div>
-    <div class="output" id="ollamaOutput" style="display: none;"></div>
-    <div class="error-msg" id="ollamaError" style="display: none;"></div>
-  `;
-
-  const promptInput = container.querySelector('#ollamaPrompt');
-  const summarizeBtn = container.querySelector('#ollamaSummarizeBtn');
-  const replaceBtn = container.querySelector('#ollamaReplaceBtn');
-  const outputDiv = container.querySelector('#ollamaOutput');
-  const errorDiv = container.querySelector('#ollamaError');
-
-  let lastOutput = '';
-
-  summarizeBtn.addEventListener('click', async () => {
-    // Get fresh config values (defaults come from settingsSchema via getConfig)
-    const currentUrl = getConfig('ollamaUrl');
-    const currentModel = getConfig('ollamaModel');
-    const allowNonLocalhost = getConfig('allowNonLocalhost') ?? false;
-
-    const transcriptText = ctx.getTranscript();
-    if (!transcriptText) {
-      errorDiv.textContent = 'No transcript to summarize';
-      errorDiv.style.display = 'block';
-      outputDiv.style.display = 'none';
-      return;
-    }
-
-    const prompt = promptInput.value.trim();
-    if (!prompt) {
-      errorDiv.textContent = 'Please enter a prompt';
-      errorDiv.style.display = 'block';
-      return;
-    }
-
-    // Validate URL
-    const urlValidation = ctx.validateUrl(currentUrl, !allowNonLocalhost);
-    if (!urlValidation.valid) {
-      errorDiv.textContent = urlValidation.error;
-      errorDiv.style.display = 'block';
-      return;
-    }
-
-    // Limit total prompt size
-    const fullPrompt = prompt + '\n\n' + transcriptText;
-    if (fullPrompt.length > MAX_OLLAMA_PROMPT_LENGTH) {
-      errorDiv.textContent = 'Transcript too long. Max ' + MAX_OLLAMA_PROMPT_LENGTH + ' characters.';
-      errorDiv.style.display = 'block';
-      return;
-    }
-
-    summarizeBtn.disabled = true;
-    summarizeBtn.textContent = 'Working...';
-    errorDiv.style.display = 'none';
-    outputDiv.style.display = 'none';
-
-    try {
-      const response = await fetch(`${currentUrl}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: currentModel,
-          prompt: fullPrompt,
-          stream: false
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(`Ollama error: ${response.status} ${response.statusText}${errorText ? ' - ' + errorText.substring(0, 100) : ''}`);
-      }
-
-      const data = await response.json();
-      lastOutput = data.response || '';
-
-      outputDiv.textContent = lastOutput;
-      outputDiv.style.display = 'block';
-      replaceBtn.disabled = !lastOutput;
-
-    } catch (err) {
-      console.error('Ollama error:', err);
-      errorDiv.textContent = 'Could not connect to Ollama. Is it running at ' + currentUrl + '?';
-      errorDiv.style.display = 'block';
-    } finally {
-      summarizeBtn.disabled = false;
-      summarizeBtn.textContent = 'Summarize';
-    }
-  });
-
-  replaceBtn.addEventListener('click', () => {
-    if (lastOutput) {
-      ctx.setTranscript(lastOutput);
-      ctx.showMessage?.('Transcript replaced', 'success');
-    }
-  });
-}
+// Note: Ollama Summarize has been removed per user request
 
 // ============================================
 // External Apps Loading (Manifest-based)

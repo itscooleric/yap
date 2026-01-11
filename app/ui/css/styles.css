@@ -1317,6 +1317,40 @@ footer a:hover {
   align-items: center;
 }
 
+/* View toggle segmented control */
+.tts-view-toggle {
+  display: flex;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: none;
+  border-right: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-toggle-btn:last-child {
+  border-right: none;
+}
+
+.view-toggle-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.view-toggle-btn.active {
+  background: var(--accent-dim);
+  color: #fff;
+  box-shadow: inset 0 0 8px var(--accent-glow);
+}
+
 .toggle-label-inline {
   display: flex;
   align-items: center;

@@ -7,7 +7,7 @@ window.__YAP_CONFIG = {
   
   // Enable/disable Apps ecosystem (default: false)
   // When false, the Apps button is hidden and built-in apps are not shown.
-  // Set to true to enable the Apps panel and built-in apps (Ollama Summarize, Send/Webhook).
+  // Set to true to enable the Apps panel and built-in apps (Send/Webhook).
   enableApps: false,
   
   // === YAP Apps Configuration ===
@@ -21,12 +21,8 @@ window.__YAP_CONFIG = {
   // Allowed origins for external iframe apps (REQUIRED for external apps)
   // Only postMessage communication from these origins will be accepted.
   // Use explicit origins, no wildcards. Example: ['https://apps.example.com']
-  appsAllowedOrigins: [],
+  appsAllowedOrigins: []
   
   // Backward compatibility: addonManifestUrl and addonAllowedOrigins 
   // are mapped to appsManifestUrl and appsAllowedOrigins if present.
-  
-  // === Ollama App Configuration (optional) ===
-  ollamaUrl: 'http://localhost:11434',
-  ollamaModel: 'llama3'
 };

@@ -218,6 +218,20 @@ function updateMarkdownPreview() {
   }
 }
 
+// Update view toggle button states
+function updateViewToggleButtons() {
+  if (elements.viewPlainBtn) {
+    elements.viewPlainBtn.classList.toggle('active', !markdownPreviewEnabled);
+  }
+  if (elements.viewMarkdownBtn) {
+    elements.viewMarkdownBtn.classList.toggle('active', markdownPreviewEnabled);
+  }
+  // Keep hidden checkbox in sync for compatibility
+  if (elements.markdownToggle) {
+    elements.markdownToggle.checked = markdownPreviewEnabled;
+  }
+}
+
 // Highlight current chunk in read-along
 function highlightChunk(index) {
   if (!elements.markdownPreview) return;
@@ -546,7 +560,9 @@ export function init(container) {
     message: container.querySelector('#ttsMessage'),
     markdownToggle: container.querySelector('#ttsMarkdownToggle'),
     markdownPreview: container.querySelector('#ttsMarkdownPreview'),
-    readAlongToggle: container.querySelector('#ttsReadAlongToggle')
+    readAlongToggle: container.querySelector('#ttsReadAlongToggle'),
+    viewPlainBtn: container.querySelector('#ttsViewPlain'),
+    viewMarkdownBtn: container.querySelector('#ttsViewMarkdown')
   };
 
   // Load voices
@@ -559,6 +575,9 @@ export function init(container) {
   if (elements.readAlongToggle) {
     elements.readAlongToggle.checked = readAlongEnabled;
   }
+  
+  // Initialize view toggle buttons
+  updateViewToggleButtons();
   
   // Update preview if enabled
   if (markdownPreviewEnabled) {
@@ -576,11 +595,29 @@ export function init(container) {
     }
   });
 
-  // Markdown preview toggle
+  // View toggle buttons (segmented control)
+  elements.viewPlainBtn?.addEventListener('click', () => {
+    markdownPreviewEnabled = false;
+    ttsSettings.markdownPreview = false;
+    saveSettings();
+    updateViewToggleButtons();
+    updateMarkdownPreview();
+  });
+  
+  elements.viewMarkdownBtn?.addEventListener('click', () => {
+    markdownPreviewEnabled = true;
+    ttsSettings.markdownPreview = true;
+    saveSettings();
+    updateViewToggleButtons();
+    updateMarkdownPreview();
+  });
+
+  // Markdown preview toggle (legacy, hidden but kept for compatibility)
   elements.markdownToggle?.addEventListener('change', () => {
     markdownPreviewEnabled = elements.markdownToggle.checked;
     ttsSettings.markdownPreview = markdownPreviewEnabled;
     saveSettings();
+    updateViewToggleButtons();
     updateMarkdownPreview();
   });
   
