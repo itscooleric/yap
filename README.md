@@ -41,26 +41,42 @@ This is achieved via Caddy labels (production) or nginx proxy (local mode).
 - Browser-based multi-clip audio recording
 - Live waveform visualization with recording timer
 - Whisper-powered transcription with per-clip status
-- Flexible transcript copy modes (clean or with separators)
-- Per-clip copy/download buttons
-- Configurable transcript settings (spacing, cleanup)
-- Keyboard shortcut: Space to start/stop recording
+- Single Copy button (copies displayed transcript)
+- Configurable transcript settings (separators, whitespace cleanup)
+- Auto-transcribe and auto-copy options
+- **Export** to GitLab, GitHub, or SFTP
+- Keyboard shortcuts:
+  - Space: Start/stop recording
+  - Ctrl+Enter: Transcribe all
+  - Ctrl+Shift+C: Copy transcript
 
 ### TTS Tab
-- Text input or file upload
+- Text input or file upload (supports .txt and .md)
 - Multiple voice selection with preference persistence
 - Adjustable speaking rate
+- **Markdown preview** with toggle
+- **Read-along mode** with paragraph highlighting
 - Audio playback with Media Session API support
 - Download generated audio
 - Keyboard shortcut: Ctrl+Enter to synthesize
 
-### Apps (YAP Apps)
+### Export (NEW)
+- Export transcripts to GitLab or GitHub repositories (commit files)
+- Upload transcripts via SFTP
+- Save export profiles for quick access
+- Optional AI-generated commit messages (via Ollama)
+- See [Export Configuration](#export-configuration) for setup
+
+### Apps (Optional)
+> **Note**: The Apps ecosystem is disabled by default. Enable it by setting `enableApps: true` in `app/ui/config.js`.
+
+When enabled:
 - Non-modal draggable/resizable app windows
 - **Built-in Apps**:
-  - **Ollama Summarize**: Summarize transcripts using local LLM (see [apps documentation](add-ons/README.md))
-  - **Send (Webhook)**: Send transcript or conversation data to webhooks (n8n, Make, custom endpoints)
-- **External Apps**: Load additional apps from a manifest URL (iframe-based, postMessage bridge)
-- Extensible architecture for custom apps
+  - **Ollama Summarize**: Summarize transcripts using local LLM
+  - **Send (Webhook)**: Send transcript or conversation data to webhooks
+- **External Apps**: Load additional apps from a manifest URL
+- See [Apps Documentation](add-ons/README.md) for details
 
 ## Screenshots
 
@@ -252,6 +268,13 @@ yap/
 │   ├── .env.example
 │   ├── README.md
 │   └── ui/
+├── exporter/                  # Export Service (GitLab/GitHub/SFTP)
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── app.py
+│   ├── .env.example
+│   ├── README.md
+│   └── requirements.txt
 ├── add-ons/                   # Apps documentation and examples
 │   ├── README.md              # Apps guide
 │   └── ollama-summarize/      # Ollama integration docs
@@ -267,7 +290,59 @@ yap/
 └── README.md
 ```
 
-## Apps (YAP Apps)
+## Export Configuration
+
+The Export feature allows you to commit transcripts to GitLab/GitHub repositories or upload via SFTP. This requires running the YAP Exporter service.
+
+### Starting the Exporter
+
+```bash
+cd exporter
+cp .env.example .env
+# Edit .env with your tokens
+docker compose up -d
+```
+
+### Configuration
+
+Edit `exporter/.env` with your credentials:
+
+```bash
+# GitLab
+GITLAB_URL=https://gitlab.com
+GITLAB_TOKEN=glpat-xxxx
+
+# GitHub
+GITHUB_API_URL=https://api.github.com
+GITHUB_TOKEN=ghp_xxxx
+
+# SFTP (optional)
+SFTP_HOST=sftp.example.com
+SFTP_USER=username
+SFTP_PASSWORD=password
+
+# Ollama for commit message generation (optional)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3
+```
+
+### Token Permissions
+
+**GitLab**: Create a personal access token with `api` scope.
+
+**GitHub**: Create a personal access token (classic) with `repo` scope, or a fine-grained token with "Contents: Read and write" permission.
+
+### Security Notes
+
+> **Warning**: The exporter service holds API tokens. Do not expose it to the public internet without authentication.
+
+- Run on `localhost` only (default)
+- Tokens are stored server-side, not in the browser
+- See [exporter/README.md](exporter/README.md) for full documentation
+
+## Apps (Optional)
+
+> **Note**: The Apps ecosystem is disabled by default since v1.1. To enable it, set `enableApps: true` in `app/ui/config.js`.
 
 Yap includes an extensible apps system for additional functionality. See the [apps documentation](add-ons/README.md) for details on:
 
@@ -276,12 +351,15 @@ Yap includes an extensible apps system for additional functionality. See the [ap
 - Creating custom apps
 - Apps API reference
 
-### Apps Configuration
+### Enabling Apps
 
-Configure apps in `app/ui/config.js`:
+Edit `app/ui/config.js`:
 
 ```javascript
 window.__YAP_CONFIG = {
+  // Enable Apps ecosystem
+  enableApps: true,
+  
   // External apps manifest URL (optional)
   appsManifestUrl: 'https://example.com/yap-apps/manifest.json',
   
@@ -326,6 +404,43 @@ pytest tests/test_tts.py -v
 ```
 
 See [tests/README.md](tests/README.md) for more details on running tests.
+
+### Manual Test Checklist
+
+When making changes, verify the following features work:
+
+**ASR Tab**
+- [ ] Record audio → clip appears with correct duration
+- [ ] Transcribe All → clips are transcribed
+- [ ] Auto-transcribe (Settings) → works when enabled
+- [ ] Auto-copy (Settings) → copies after transcription
+- [ ] Copy button → copies displayed transcript
+- [ ] Download .txt → downloads transcript file
+- [ ] Export button → opens export panel
+- [ ] Settings → all toggles work and persist
+- [ ] Ctrl+Enter → triggers transcribe
+- [ ] Ctrl+Shift+C → triggers copy
+- [ ] Clear button → respects confirm setting
+
+**TTS Tab**
+- [ ] Enter text → synthesize button enables
+- [ ] Markdown toggle → shows/hides preview
+- [ ] Read-along toggle → chunks are highlighted during playback
+- [ ] Synthesize → audio plays
+- [ ] Download → downloads audio file
+- [ ] Ctrl+Enter → triggers synthesize
+
+**Export (requires exporter service)**
+- [ ] Export panel opens
+- [ ] Connection test works
+- [ ] GitLab commit works
+- [ ] GitHub commit works
+- [ ] SFTP upload works
+
+**Apps (when enabled)**
+- [ ] Apps button visible when enableApps=true
+- [ ] Apps button hidden when enableApps=false
+- [ ] Built-in apps work (Ollama Summarize, Send/Webhook)
 
 ## Makefile Helpers
 
