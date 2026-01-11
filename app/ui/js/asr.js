@@ -3,6 +3,7 @@
 
 import { util } from './util.js';
 import { createAddonWindow } from './addons.js';
+import { openExportPanel } from './export.js';
 
 // ASR State
 let mediaRecorder = null;
@@ -128,6 +129,9 @@ function updateTranscriptDisplay() {
   const hasText = text.length > 0;
   elements.copyBtn.disabled = !hasText;
   elements.downloadTxtBtn.disabled = !hasText;
+  if (elements.exportBtn) {
+    elements.exportBtn.disabled = !hasText;
+  }
 }
 
 // Status management
@@ -831,6 +835,7 @@ export function init(container) {
     clearBtn: container.querySelector('#clearBtn'),
     copyBtn: container.querySelector('#copyBtn'),
     downloadTxtBtn: container.querySelector('#downloadTxtBtn'),
+    exportBtn: container.querySelector('#exportBtn'),
     transcript: container.querySelector('#transcript'),
     statusDot: container.querySelector('#asrStatusDot'),
     statusText: container.querySelector('#asrStatusText'),
@@ -865,6 +870,12 @@ export function init(container) {
   
   elements.copyBtn?.addEventListener('click', () => copyTranscript());
   elements.downloadTxtBtn?.addEventListener('click', downloadTranscript);
+  elements.exportBtn?.addEventListener('click', () => {
+    openExportPanel(
+      () => getCombinedTranscript(),
+      () => clips.slice()
+    );
+  });
 
   // File upload handlers
   elements.uploadBtn?.addEventListener('click', () => elements.fileInput?.click());

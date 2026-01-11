@@ -1,0 +1,38 @@
+# YAP Exporter
+# Docker Compose for the exporter service
+#
+# Usage:
+#   docker compose up -d
+#
+# Configure via .env file (copy from .env.example)
+
+services:
+  yap-exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yap-exporter
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    env_file:
+      - .env
+    environment:
+      - GITLAB_URL=${GITLAB_URL:-https://gitlab.com}
+      - GITLAB_TOKEN=${GITLAB_TOKEN:-}
+      - GITHUB_API_URL=${GITHUB_API_URL:-https://api.github.com}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3}
+      - SFTP_HOST=${SFTP_HOST:-}
+      - SFTP_PORT=${SFTP_PORT:-22}
+      - SFTP_USER=${SFTP_USER:-}
+      - SFTP_PASSWORD=${SFTP_PASSWORD:-}
+      - SFTP_KEY_PATH=${SFTP_KEY_PATH:-}
+      - SFTP_BASE_PATH=${SFTP_BASE_PATH:-/uploads}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

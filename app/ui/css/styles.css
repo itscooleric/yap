@@ -1442,3 +1442,122 @@ footer a:hover {
   background: rgba(255, 41, 117, 0.2);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
+
+/* Export Panel Styles */
+.export-panel {
+  font-size: 0.85rem;
+}
+
+.export-status {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  font-size: 0.75rem;
+}
+
+.export-section {
+  margin-bottom: 0.75rem;
+}
+
+.export-section label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.export-destination-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.export-select {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+}
+
+.export-panel input[type="text"],
+.export-panel input[type="url"],
+.export-panel select {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+}
+
+.export-panel input:focus,
+.export-panel select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.export-hint {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.export-option {
+  margin-top: 0.5rem;
+}
+
+.export-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.export-output {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  max-height: 150px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.export-output pre {
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.export-error {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  border-radius: 3px;
+  color: var(--error);
+  font-size: 0.75rem;
+}
+
+.export-edit-header {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+}
