@@ -80,11 +80,30 @@ When enabled:
 
 ## Screenshots
 
-*(See `/docs/images/` for screenshot placeholders)*
+Visual documentation of Yap's features and user interface.
 
-| ASR | TTS |
-|-----|-----|
-| ![ASR Screenshot](docs/images/asr-recording.png) | ![TTS Screenshot](docs/images/tts-idle.png) |
+### ASR (Speech-to-Text)
+
+| Recording | Transcribed |
+|-----------|-------------|
+| ![ASR Recording](docs/images/asr-recording.png) | ![ASR Transcribed](docs/images/asr-transcribed.png) |
+| Multi-clip recording with live waveform visualization | Completed transcription with clips and transcript display |
+
+### TTS (Text-to-Speech)
+
+| Text Input | Read-Along Mode |
+|------------|-----------------|
+| ![TTS Idle](docs/images/tts-idle.png) | ![TTS Read-Along](docs/images/tts-read-along.png) |
+| Text input with markdown preview toggle | Paragraph highlighting during audio playback |
+
+### Export & Transfer
+
+| Export Panel |
+|--------------|
+| ![Export UI](docs/images/export-panel.png) |
+| GitLab, GitHub, and SFTP export integration |
+
+> **Note**: Screenshots shown are placeholders. See `/docs/images/` for the full collection.
 
 ## Quick Start
 
