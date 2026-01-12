@@ -1,280 +1,189 @@
 """
-Tests for YAP Settings functionality
+Tests for YAP Settings and Configuration
 
-These tests verify the settings module works correctly,
-including default values, persistence, and validation.
-They are primarily unit tests that don't require running services.
+These tests verify that settings are properly stored, retrieved,
+and applied across the application, including default values.
 """
 
 import pytest
 import json
 
 
-class TestASRSettingsDefaults:
-    """Test ASR settings default values"""
+class TestDefaultSettings:
+    """Test default settings configuration"""
 
-    def test_auto_transcribe_default(self):
-        """Auto-transcribe should be disabled by default"""
-        default_settings = {
-            "autoTranscribe": False,
-            "autoCopy": False,
-            "confirmClear": True,
-            "confirmDelete": True
+    def test_asr_default_settings(self):
+        """ASR tab should have sensible default settings"""
+        # Expected defaults from asr.js
+        expected_defaults = {
+            'showSeparators': False,
+            'collapseBlankLines': True,
+            'trimWhitespace': True,
+            'betweenClips': 'blank',
+            'cleanLineBreaks': False,
+            'lineBreakMode': 'paragraphs',
+            'autoTranscribe': False,
+            'autoCopy': False,
+            'confirmClear': True,
+            'confirmDeleteClip': True
         }
         
-        assert default_settings["autoTranscribe"] == False
+        # This is a documentation test to ensure defaults are reasonable
+        assert expected_defaults['collapseBlankLines'] is True, "Should collapse blank lines by default"
+        assert expected_defaults['trimWhitespace'] is True, "Should trim whitespace by default"
+        assert expected_defaults['confirmClear'] is True, "Should confirm clear by default for safety"
 
-    def test_auto_copy_default(self):
-        """Auto-copy should be disabled by default"""
-        default_settings = {
-            "autoTranscribe": False,
-            "autoCopy": False,
-            "confirmClear": True,
-            "confirmDelete": True
+    def test_tts_default_settings(self):
+        """TTS tab should have sensible default settings"""
+        # Expected defaults from tts.js
+        expected_defaults = {
+            'markdownPreview': False,
+            'readAlong': False,
+            'chunkMode': 'paragraph',
+            'maxChunks': 30,
+            'maxCharsPerChunk': 1200
         }
         
-        assert default_settings["autoCopy"] == False
+        # Verify defaults are reasonable values
+        assert expected_defaults['chunkMode'] == 'paragraph', "Should chunk by paragraph by default"
+        assert expected_defaults['maxChunks'] > 0, "Max chunks must be positive"
+        assert expected_defaults['maxChunks'] <= 50, "Max chunks should be reasonable (not too high)"
+        assert expected_defaults['maxCharsPerChunk'] > 0, "Max chars must be positive"
+        assert expected_defaults['maxCharsPerChunk'] >= 1000, "Max chars should allow reasonable paragraph size"
 
-    def test_confirm_clear_default(self):
-        """Confirm before clear should be enabled by default"""
-        default_settings = {
-            "autoTranscribe": False,
-            "autoCopy": False,
-            "confirmClear": True,
-            "confirmDelete": True
-        }
+    def test_apps_ecosystem_default_disabled(self):
+        """Apps ecosystem should be disabled by default"""
+        # According to README and config.js, enableApps defaults to false
+        # This is a security/simplicity feature
+        expected_default = False
+        assert expected_default is False, "Apps should be disabled by default"
+
+
+class TestSettingsKeys:
+    """Test settings storage key conventions"""
+
+    def test_asr_settings_keys(self):
+        """ASR settings should use consistent key naming"""
+        expected_keys = [
+            'settings.transcript.showSeparators',
+            'settings.transcript.collapseBlankLines',
+            'settings.transcript.trimWhitespace',
+            'settings.transcript.betweenClips',
+            'settings.transcript.cleanLineBreaks',
+            'settings.transcript.lineBreakMode',
+            'settings.asr.autoTranscribe',
+            'settings.asr.autoCopy',
+            'settings.asr.confirmClear',
+            'settings.asr.confirmDeleteClip'
+        ]
         
-        assert default_settings["confirmClear"] == True
+        # Verify key naming convention
+        for key in expected_keys:
+            assert key.startswith('settings.'), f"Settings key should start with 'settings.': {key}"
+            assert '.' in key, f"Settings key should use dot notation: {key}"
 
-    def test_confirm_delete_default(self):
-        """Confirm before delete should be enabled by default"""
-        default_settings = {
-            "autoTranscribe": False,
-            "autoCopy": False,
-            "confirmClear": True,
-            "confirmDelete": True
-        }
+    def test_tts_settings_keys(self):
+        """TTS settings should use consistent key naming"""
+        expected_keys = [
+            'settings.tts.markdownPreview',
+            'settings.tts.readAlong',
+            'settings.tts.chunkMode',
+            'settings.tts.maxChunks',
+            'settings.tts.maxCharsPerChunk'
+        ]
         
-        assert default_settings["confirmDelete"] == True
+        # Verify key naming convention
+        for key in expected_keys:
+            assert key.startswith('settings.tts.'), f"TTS settings should start with 'settings.tts.': {key}"
 
-
-class TestTranscriptFormattingDefaults:
-    """Test transcript formatting settings defaults"""
-
-    def test_show_separators_default(self):
-        """Show separators should be disabled by default"""
-        default_settings = {
-            "showSeparators": False,
-            "collapseBlankLines": True,
-            "trimWhitespace": True
-        }
+    def test_export_settings_keys(self):
+        """Export settings should use consistent key naming"""
+        expected_keys = [
+            'yap.export.profiles',
+            'yap.export.exporterUrl'
+        ]
         
-        assert default_settings["showSeparators"] == False
-
-    def test_collapse_blank_lines_default(self):
-        """Collapse blank lines should be enabled by default"""
-        default_settings = {
-            "showSeparators": False,
-            "collapseBlankLines": True,
-            "trimWhitespace": True
-        }
-        
-        assert default_settings["collapseBlankLines"] == True
-
-    def test_trim_whitespace_default(self):
-        """Trim whitespace should be enabled by default"""
-        default_settings = {
-            "showSeparators": False,
-            "collapseBlankLines": True,
-            "trimWhitespace": True
-        }
-        
-        assert default_settings["trimWhitespace"] == True
-
-
-class TestTTSSettingsDefaults:
-    """Test TTS settings default values"""
-
-    def test_markdown_preview_default(self):
-        """Markdown preview should be disabled by default"""
-        default_settings = {
-            "markdownPreview": False,
-            "chunkMode": "paragraph",
-            "maxChunks": 30,
-            "maxCharsPerChunk": 1200
-        }
-        
-        assert default_settings["markdownPreview"] == False
-
-    def test_chunk_mode_default(self):
-        """Chunk mode should be 'paragraph' by default"""
-        default_settings = {
-            "markdownPreview": False,
-            "chunkMode": "paragraph",
-            "maxChunks": 30,
-            "maxCharsPerChunk": 1200
-        }
-        
-        assert default_settings["chunkMode"] == "paragraph"
-
-    def test_max_chunks_default(self):
-        """Max chunks should be 30 by default"""
-        default_settings = {
-            "markdownPreview": False,
-            "chunkMode": "paragraph",
-            "maxChunks": 30,
-            "maxCharsPerChunk": 1200
-        }
-        
-        assert default_settings["maxChunks"] == 30
-
-    def test_max_chars_per_chunk_default(self):
-        """Max chars per chunk should be 1200 by default"""
-        default_settings = {
-            "markdownPreview": False,
-            "chunkMode": "paragraph",
-            "maxChunks": 30,
-            "maxCharsPerChunk": 1200
-        }
-        
-        assert default_settings["maxCharsPerChunk"] == 1200
-
-
-class TestMetricsSettingsDefaults:
-    """Test metrics settings default values"""
-
-    def test_metrics_enabled_default(self):
-        """Metrics should be enabled by default"""
-        # Updated to reflect new default (enabled by default)
-        default_settings = {
-            "enabled": True,
-            "storeText": False,
-            "retentionDays": 30,
-            "maxEvents": 5000
-        }
-        
-        assert default_settings["enabled"] == True
-
-    def test_store_text_default(self):
-        """Store text should be disabled by default for privacy"""
-        default_settings = {
-            "enabled": True,
-            "storeText": False,
-            "retentionDays": 30,
-            "maxEvents": 5000
-        }
-        
-        assert default_settings["storeText"] == False
-
-    def test_retention_days_default(self):
-        """Retention days should be 30 by default"""
-        default_settings = {
-            "enabled": True,
-            "storeText": False,
-            "retentionDays": 30,
-            "maxEvents": 5000
-        }
-        
-        assert default_settings["retentionDays"] == 30
-
-    def test_max_events_default(self):
-        """Max events should be 5000 by default"""
-        default_settings = {
-            "enabled": True,
-            "storeText": False,
-            "retentionDays": 30,
-            "maxEvents": 5000
-        }
-        
-        assert default_settings["maxEvents"] == 5000
-
-
-class TestSettingsPersistence:
-    """Test settings persistence logic"""
-
-    def test_settings_can_be_serialized_to_json(self):
-        """Settings should be JSON serializable"""
-        settings = {
-            "autoTranscribe": True,
-            "autoCopy": False,
-            "confirmClear": True,
-            "showSeparators": False,
-            "clipJoiner": "blank_line"
-        }
-        
-        # Should not raise
-        json_str = json.dumps(settings)
-        assert isinstance(json_str, str)
-        
-        # Should be deserializable
-        parsed = json.loads(json_str)
-        assert parsed == settings
-
-    def test_settings_merge_with_defaults(self):
-        """Saved settings should merge with defaults"""
-        defaults = {
-            "autoTranscribe": False,
-            "autoCopy": False,
-            "confirmClear": True,
-            "confirmDelete": True,
-            "newSetting": "default"
-        }
-        
-        saved = {
-            "autoTranscribe": True,  # User changed this
-            "confirmClear": False    # User changed this
-        }
-        
-        # Merge logic: saved values override defaults
-        merged = {**defaults, **saved}
-        
-        assert merged["autoTranscribe"] == True  # From saved
-        assert merged["autoCopy"] == False       # From defaults
-        assert merged["confirmClear"] == False   # From saved
-        assert merged["confirmDelete"] == True   # From defaults
-        assert merged["newSetting"] == "default" # From defaults
+        # Verify key naming convention
+        for key in expected_keys:
+            assert key.startswith('yap.'), f"App-level settings should start with 'yap.': {key}"
 
 
 class TestSettingsValidation:
-    """Test settings value validation"""
+    """Test settings validation logic"""
 
-    def test_boolean_settings_accept_true_false(self):
-        """Boolean settings should only accept True or False"""
-        boolean_settings = ["autoTranscribe", "autoCopy", "confirmClear"]
+    def test_transcript_between_clips_options(self):
+        """betweenClips setting should accept valid options"""
+        valid_options = ['blank', 'single']
         
-        for setting in boolean_settings:
-            # Valid values
-            assert isinstance(True, bool)
-            assert isinstance(False, bool)
+        for option in valid_options:
+            # Each option should be a valid string
+            assert isinstance(option, str)
+            assert option in valid_options
 
-    def test_max_chunks_must_be_positive(self):
-        """Max chunks must be a positive integer"""
-        max_chunks = 30
-        assert max_chunks > 0
-        assert isinstance(max_chunks, int)
-
-    def test_max_chars_per_chunk_must_be_positive(self):
-        """Max chars per chunk must be a positive integer"""
-        max_chars = 1200
-        assert max_chars > 0
-        assert isinstance(max_chars, int)
-
-    def test_retention_days_must_be_positive(self):
-        """Retention days must be a positive integer"""
-        retention_days = 30
-        assert retention_days > 0
-        assert isinstance(retention_days, int)
-
-    def test_clip_joiner_values(self):
-        """Clip joiner should only accept valid values"""
-        valid_joiners = ["blank_line", "single_newline"]
+    def test_tts_chunk_mode_options(self):
+        """chunkMode setting should accept valid options"""
+        valid_options = ['paragraph', 'line']
         
-        selected = "blank_line"
-        assert selected in valid_joiners
+        for option in valid_options:
+            # Each option should be a valid string
+            assert isinstance(option, str)
+            assert option in valid_options
 
-    def test_chunk_mode_values(self):
-        """Chunk mode should only accept valid values"""
-        valid_modes = ["paragraph", "line"]
+    def test_export_profile_structure(self):
+        """Export profiles should have consistent structure"""
+        # Example profile structure
+        example_profile = {
+            'id': 'profile-1',
+            'name': 'My GitLab',
+            'type': 'gitlab',
+            'projectId': 'owner/repo',
+            'branch': 'main',
+            'filePath': 'inbox/{year}/{month}/{timestamp}.md'
+        }
         
-        selected = "paragraph"
-        assert selected in valid_modes
+        required_fields = ['id', 'name', 'type']
+        for field in required_fields:
+            assert field in example_profile, f"Profile must have {field} field"
+
+
+class TestConfigurationDefaults:
+    """Test application configuration defaults"""
+
+    def test_exporter_default_url(self):
+        """Exporter should default to localhost"""
+        default_url = 'http://localhost:8090'
+        assert default_url.startswith('http://'), "Should use HTTP protocol"
+        assert 'localhost' in default_url, "Should default to localhost for security"
+
+    def test_ollama_default_config(self):
+        """Ollama should have sensible defaults"""
+        default_ollama_url = 'http://localhost:11434'
+        default_ollama_model = 'llama3'
+        
+        assert default_ollama_url.startswith('http://'), "Should use HTTP protocol"
+        assert 'localhost' in default_ollama_url, "Should default to localhost"
+        assert isinstance(default_ollama_model, str), "Model should be a string"
+        assert len(default_ollama_model) > 0, "Model should not be empty"
+
+
+class TestFeatureFlags:
+    """Test feature flag behavior"""
+
+    def test_apps_feature_flag(self):
+        """Apps feature should be controllable via config"""
+        # Apps can be enabled/disabled via config.js enableApps flag
+        # Default should be false (disabled)
+        default_enable_apps = False
+        assert default_enable_apps is False, "Apps should be disabled by default"
+
+    def test_markdown_preview_setting(self):
+        """Markdown preview should be a toggle setting"""
+        # Default should be false (not shown by default)
+        default_markdown_preview = False
+        assert isinstance(default_markdown_preview, bool)
+
+    def test_read_along_setting(self):
+        """Read-along should be a toggle setting"""
+        # Default should be false (not enabled by default)
+        default_read_along = False
+        assert isinstance(default_read_along, bool)

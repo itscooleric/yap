@@ -151,6 +151,54 @@ These tests can be integrated into CI pipelines:
     cd ../services/yap-metrics && docker compose down
 ```
 
+## Test Coverage
+
+The test suite includes:
+
+### Unit Tests
+- **test_tts.py**: TTS service endpoint tests
+- **test_exporter.py**: Export service (GitLab/GitHub/SFTP) tests
+- **test_settings.py**: Settings and configuration tests
+- **test_read_along.py**: TTS read-along functionality tests
+
+### Integration Tests
+- **test_integration.py**: End-to-end workflow tests
+
+### Running Specific Test Groups
+
+**Run only unit tests (no services required):**
+```bash
+pytest tests/test_settings.py tests/test_read_along.py -v
+```
+
+**Run service tests (requires TTS service):**
+```bash
+# Start TTS service first
+cd tts && docker compose up -d
+
+# Run tests
+pytest tests/test_tts.py -v
+```
+
+**Run exporter tests (requires exporter service):**
+```bash
+# Start exporter service first
+cd exporter && docker compose up -d
+
+# Run tests
+EXPORTER_BASE_URL=http://localhost:8090 pytest tests/test_exporter.py -v
+```
+
+**Run integration tests (requires both services):**
+```bash
+# Start services
+cd tts && docker compose up -d
+cd exporter && docker compose up -d
+
+# Run tests
+pytest tests/test_integration.py -v -m integration
+```
+
 ## Writing New Tests
 
 When adding new tests:

@@ -2,20 +2,36 @@
 
 This directory contains screenshots for the Yap documentation.
 
-## Required Screenshots
+## Current Screenshots
 
-Please capture and add the following screenshots:
+The following placeholder screenshots have been generated:
 
-### ASR (Quick Mic)
+### ASR (Automatic Speech Recognition)
 
 1. `asr-idle.png` - UI in idle state
 2. `asr-recording.png` - UI during recording (showing waveform and timer)
 3. `asr-transcribed.png` - UI with completed transcription
 
-### TTS (Quick TTS)
+### TTS (Text-to-Speech)
 
 1. `tts-idle.png` - UI in idle state with voice dropdown
 2. `tts-synthesized.png` - UI with generated audio player
+3. `tts-read-along.png` - Read-along mode with paragraph highlighting
+
+### Export & Transfer
+
+1. `export-panel.png` - Export panel showing GitLab/GitHub/SFTP options
+
+## Updating Screenshots
+
+To replace placeholders with actual screenshots:
+
+1. Run the Yap application locally (see main README for instructions)
+2. Capture screenshots at approximately 1200x800 resolution
+3. Use the dark theme (default)
+4. Avoid including personal data in screenshots
+5. Compress images with `optipng` or similar tools
+6. Replace the placeholder files with the same filenames
 
 ## Screenshot Guidelines
 

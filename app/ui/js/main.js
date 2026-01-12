@@ -5,6 +5,7 @@ import { asr } from './asr.js';
 import { tts } from './tts.js';
 import * as data from './data.js';
 import { initAddonPanel } from './addons.js';
+import { metrics } from './metrics.js';
 
 // App state
 let activeTab = 'asr';
@@ -134,6 +135,33 @@ function handleHashRoute() {
   }
 }
 
+// Setup keyboard shortcuts
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Only trigger if not typing in an input/textarea
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    // D key - open Data tab (if metrics enabled)
+    if (e.key === 'd' || e.key === 'D') {
+      if (metrics.isEnabled()) {
+        e.preventDefault();
+        switchTab('data');
+      }
+    }
+    
+    // S key - open Settings
+    if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      const settingsBtn = document.getElementById('settingsBtn');
+      if (settingsBtn) {
+        settingsBtn.click();
+      }
+    }
+  });
+}
+
 // Initialize application
 async function init() {
   // Cache tab elements
@@ -190,12 +218,16 @@ async function init() {
   handleHashRoute();
   window.addEventListener('hashchange', handleHashRoute);
   
+  // Setup keyboard shortcuts
+  setupKeyboardShortcuts();
+  
   // Check backend availability
   checkBackends();
   
   // Expose global helpers
   window.yapState = window.yapState || {};
   window.yapState.showMessage = showMessage;
+  window.yapState.metrics = metrics;
 }
 
 // Wait for DOM ready
