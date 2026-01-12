@@ -31,6 +31,35 @@
     <main>
       <!-- ASR Tab -->
       <div id="asr-tab" class="tab-content active">
+        <!-- Mobile Sticky Toolbar -->
+        <div id="mobileToolbar" class="mobile-toolbar" style="display: none;">
+          <div class="mobile-toolbar-actions">
+            <button id="mobileRecordBtn" class="mobile-btn mobile-btn-primary" title="Record">
+              <span class="mobile-btn-icon">⏺</span>
+              <span class="mobile-btn-label">Record</span>
+            </button>
+            <button id="mobileTranscribeBtn" class="mobile-btn" disabled title="Transcribe">
+              <span class="mobile-btn-icon">📝</span>
+              <span class="mobile-btn-label">Transcribe</span>
+            </button>
+            <button id="mobileCopyBtn" class="mobile-btn" disabled title="Copy">
+              <span class="mobile-btn-icon">📋</span>
+              <span class="mobile-btn-label">Copy</span>
+            </button>
+            <button id="mobileExportBtn" class="mobile-btn" disabled title="Export">
+              <span class="mobile-btn-icon">📤</span>
+              <span class="mobile-btn-label">Export</span>
+            </button>
+            <button id="mobileMenuBtn" class="mobile-btn" title="More">
+              <span class="mobile-btn-icon">⋯</span>
+            </button>
+          </div>
+          <div class="mobile-toolbar-status">
+            <span class="mobile-status-dot" id="mobileStatusDot"></span>
+            <span id="mobileStatusText">Idle</span>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel-header">Recording</div>
 
