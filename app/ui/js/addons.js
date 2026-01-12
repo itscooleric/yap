@@ -215,8 +215,8 @@ export function createAppWindow(title, contentRenderer, options = {}) {
   // Check if a singleton window with this ID already exists
   if (windowId && windowRegistry[windowId]) {
     const existingWin = windowRegistry[windowId];
-    // Bring to front and return existing window
-    if (existingWin && document.body.contains(existingWin)) {
+    // Bring to front and return existing window (with additional null/parentNode checks)
+    if (existingWin && existingWin.parentNode && document.body.contains(existingWin)) {
       existingWin.style.zIndex = ++windowZIndex;
       return existingWin;
     } else {
