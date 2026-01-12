@@ -21,6 +21,7 @@
         <nav class="nav-tabs">
           <button data-tab="asr" class="active">ASR</button>
           <button data-tab="tts">TTS</button>
+          <button data-tab="data" id="dataBtn" style="display: none;">Data</button>
           <button id="addonsBtn">Apps</button>
           <button id="settingsBtn" class="settings-btn" title="Settings">Settings</button>
         </nav>
@@ -206,6 +207,87 @@
           </div>
 
           <div id="ttsMessage" class="message" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Data Tab -->
+      <div id="data-tab" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">Metrics Summary</div>
+          
+          <div class="data-summary">
+            <div class="data-period">
+              <h3>Today</h3>
+              <div class="data-stats">
+                <div class="data-stat">
+                  <span class="data-stat-label">Recorded</span>
+                  <span class="data-stat-value" id="todayRecorded">0 min</span>
+                </div>
+                <div class="data-stat">
+                  <span class="data-stat-label">Transcribed</span>
+                  <span class="data-stat-value" id="todayTranscribed">0 min</span>
+                </div>
+                <div class="data-stat">
+                  <span class="data-stat-label">TTS Generated</span>
+                  <span class="data-stat-value" id="todayTTS">0 min</span>
+                </div>
+                <div class="data-stat">
+                  <span class="data-stat-label">Characters</span>
+                  <span class="data-stat-value" id="todayChars">0</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="data-period">
+              <h3>Last 7 Days</h3>
+              <div class="data-stats">
+                <div class="data-stat">
+                  <span class="data-stat-label">Recorded</span>
+                  <span class="data-stat-value" id="week7Recorded">0 min</span>
+                </div>
+                <div class="data-stat">
+                  <span class="data-stat-label">Transcribed</span>
+                  <span class="data-stat-value" id="week7Transcribed">0 min</span>
+                </div>
+                <div class="data-stat">
+                  <span class="data-stat-label">TTS Generated</span>
+                  <span class="data-stat-value" id="week7TTS">0 min</span>
+                </div>
+                <div class="data-stat">
+                  <span class="data-stat-label">Characters</span>
+                  <span class="data-stat-value" id="week7Chars">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="data-controls">
+            <button id="exportHistoryBtn" class="secondary">Export JSON</button>
+            <button id="clearHistoryBtn" class="danger">Clear History</button>
+          </div>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-header">History</div>
+          
+          <div class="data-history-container">
+            <table class="data-history-table" id="historyTable">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Duration</th>
+                  <th>Chars</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <tr>
+                  <td colspan="5" class="no-data">No history available. Enable metrics in Settings.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>

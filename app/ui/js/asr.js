@@ -5,6 +5,11 @@ import { util } from './util.js';
 import { createAddonWindow } from './addons.js';
 import { openExportPanel } from './export.js';
 
+// Import metrics (will be available via window.yapState if not loaded yet)
+function getMetrics() {
+  return window.yapState?.metrics || { recordEvent: () => {}, isEnabled: () => false };
+}
+
 // ASR State
 let mediaRecorder = null;
 let audioChunks = [];
@@ -493,6 +498,12 @@ async function startRecording() {
       const durationMs = startTime ? Date.now() - startTime : 0;
 
       const newClip = addClip(blob, actualMimeType, durationMs);
+      
+      // Record metrics event
+      getMetrics().recordEvent('asr_record', {
+        duration_in_sec: durationMs / 1000,
+        status: 'success'
+      });
 
       stopTimer();
       if (animationId) {
@@ -578,11 +589,26 @@ async function transcribeSingleClip(clip) {
     const text = await response.text();
     const cleanedText = text.trim();
     updateClipStatus(clip.id, 'transcribed', cleanedText);
+    
+    // Record metrics event
+    getMetrics().recordEvent('asr_transcribe', {
+      duration_in_sec: clip.durationMs / 1000,
+      chars_out: cleanedText.length,
+      status: 'success'
+    });
+    
     return cleanedText;
 
   } catch (err) {
     console.error('Transcription error:', err);
     updateClipStatus(clip.id, 'error');
+    
+    // Record failed transcription
+    getMetrics().recordEvent('asr_transcribe', {
+      duration_in_sec: clip.durationMs / 1000,
+      status: 'error'
+    });
+    
     throw err;
   }
 }
@@ -724,6 +750,16 @@ function openSettingsPanel() {
         <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2.8rem;">Requires confirm export OFF</span>
       </div>
       
+      <div class="settings-section-title">Data & Metrics</div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch" id="settingEnableMetrics"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">Enable metrics tracking</span>
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2.8rem;">Local storage only • Shows Data tab • Max 5000 events, 30 days</span>
+      </div>
+      
       <div class="settings-section-title">Behavior</div>
       
       <div class="form-group" style="margin-bottom: 1rem;">
@@ -833,6 +869,32 @@ function openSettingsPanel() {
       this.classList.toggle('active', mobileSettings.oneTapExport);
       saveMobileSettings();
     });
+    
+    // Event handler - Metrics
+    const metricsToggle = container.querySelector('#settingEnableMetrics');
+    if (metricsToggle) {
+      const metricsEnabled = getMetrics().isEnabled();
+      metricsToggle.classList.toggle('active', metricsEnabled);
+      
+      metricsToggle.addEventListener('click', function() {
+        const newState = !getMetrics().isEnabled();
+        getMetrics().setEnabled(newState);
+        this.classList.toggle('active', newState);
+        
+        // Show message about page reload
+        if (newState) {
+          alert('Metrics enabled! The Data tab is now available in the top navigation.');
+        } else {
+          if (confirm('Disable metrics? The Data tab will be hidden but history will be preserved.')) {
+            // User confirmed
+          } else {
+            // User cancelled, revert
+            getMetrics().setEnabled(true);
+            this.classList.add('active');
+          }
+        }
+      });
+    }
     
     // Event handlers - Behavior
     container.querySelector('#settingAutoTranscribe').addEventListener('click', function() {

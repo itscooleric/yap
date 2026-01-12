@@ -4,6 +4,7 @@
 import { asr } from './asr.js';
 import { tts } from './tts.js';
 import { initAddonPanel } from './addons.js';
+import { metrics } from './metrics.js';
 
 // App state
 let activeTab = 'asr';
@@ -13,7 +14,8 @@ let ttsEnabled = true;
 // Tab elements
 const tabs = {
   asr: null,
-  tts: null
+  tts: null,
+  data: null
 };
 
 // Show message (global helper)
@@ -127,9 +129,36 @@ function setupRecordingIndicator() {
 // Handle hash-based routing for deep links
 function handleHashRoute() {
   const hash = window.location.hash.replace('#', '');
-  if (hash === 'asr' || hash === 'tts') {
+  if (hash === 'asr' || hash === 'tts' || hash === 'data') {
     switchTab(hash);
   }
+}
+
+// Setup keyboard shortcuts
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Only trigger if not typing in an input/textarea
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    // D key - open Data tab (if metrics enabled)
+    if (e.key === 'd' || e.key === 'D') {
+      if (metrics.isEnabled()) {
+        e.preventDefault();
+        switchTab('data');
+      }
+    }
+    
+    // S key - open Settings
+    if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      const settingsBtn = document.getElementById('settingsBtn');
+      if (settingsBtn) {
+        settingsBtn.click();
+      }
+    }
+  });
 }
 
 // Initialize application
@@ -137,6 +166,7 @@ function init() {
   // Cache tab elements
   tabs.asr = document.getElementById('asr-tab');
   tabs.tts = document.getElementById('tts-tab');
+  tabs.data = document.getElementById('data-tab');
   
   // Initialize ASR
   if (tabs.asr) {
@@ -146,6 +176,11 @@ function init() {
   // Initialize TTS
   if (tabs.tts) {
     tts.init(tabs.tts);
+  }
+  
+  // Initialize metrics/data tab
+  if (tabs.data) {
+    metrics.init();
   }
   
   // Initialize addon panel and settings
@@ -182,12 +217,16 @@ function init() {
   handleHashRoute();
   window.addEventListener('hashchange', handleHashRoute);
   
+  // Setup keyboard shortcuts
+  setupKeyboardShortcuts();
+  
   // Check backend availability
   checkBackends();
   
   // Expose global helpers
   window.yapState = window.yapState || {};
   window.yapState.showMessage = showMessage;
+  window.yapState.metrics = metrics;
 }
 
 // Wait for DOM ready
