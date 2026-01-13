@@ -717,10 +717,11 @@ function downloadTranscript() {
 async function copyTranscript() {
   // Copy exactly what is displayed in the transcript area
   const text = getCombinedTranscript();
-  if (!text) return;
+  if (!text) return false;
   
   const success = await util.copyToClipboard(text);
   showMessage(success ? 'Copied' : 'Copy failed', success ? 'success' : 'error');
+  return success;
 }
 
 async function copyClipTranscript(clipId) {
