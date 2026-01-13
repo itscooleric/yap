@@ -5,6 +5,7 @@ import { util } from './util.js';
 import { createAddonWindow } from './addons.js';
 import { openExportPanel } from './export.js';
 import { storage } from './storage.js';
+import { audioDevices } from './audioDevices.js';
 
 // Import data module for metrics recording
 function getDataModule() {
@@ -496,7 +497,30 @@ function handleAudioFileUpload(file) {
 // Recording
 async function startRecording() {
   try {
-    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Get audio constraints from device manager (selected device or default)
+    let audioConstraints = audioDevices.getAudioConstraints();
+    let usedFallback = false;
+    
+    try {
+      audioStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+    } catch (constraintErr) {
+      // If specific device fails (OverconstrainedError/NotFoundError), fall back to default
+      if (constraintErr.name === 'OverconstrainedError' || constraintErr.name === 'NotFoundError') {
+        console.warn('Selected device unavailable, falling back to default:', constraintErr);
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: audioDevices.getFallbackConstraints() });
+        usedFallback = true;
+        showMessage('Selected mic unavailable, using default', 'warning');
+      } else {
+        throw constraintErr;
+      }
+    }
+
+    // Update actual active device from the opened stream
+    const audioTrack = audioStream.getAudioTracks()[0];
+    if (audioTrack) {
+      const settings = audioTrack.getSettings();
+      audioDevices.setActualActiveDeviceId(settings.deviceId || null);
+    }
 
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
@@ -540,6 +564,7 @@ async function startRecording() {
 
       if (audioStream) {
         audioStream.getTracks().forEach(track => track.stop());
+        audioStream = null;
       }
       if (audioContext) {
         const ctx = audioContext;
@@ -547,6 +572,9 @@ async function startRecording() {
         analyser = null;
         ctx.close().catch(err => console.warn('AudioContext close error:', err));
       }
+      
+      // Clear actual active device (no longer recording)
+      audioDevices.setActualActiveDeviceId(null);
 
       setStatus('done', 'Clip saved');
       
@@ -576,16 +604,25 @@ async function startRecording() {
     drawBarMeter();
 
     setStatus('recording', 'Recording...');
-    elements.recordBtn.disabled = true;
+    // Update toggle button to show Stop state
+    elements.recordBtn.textContent = 'Stop';
     elements.recordBtn.classList.add('recording');
-    elements.stopBtn.disabled = false;
     updateRecordingIndicator();
     updateMobileToolbarState();
 
   } catch (err) {
     console.error('Recording error:', err);
-    setStatus('error', 'Microphone access denied');
-    showMessage('Error: Could not access microphone. Please allow microphone access.', 'error');
+    // Handle different error types with appropriate messages
+    if (err.name === 'NotAllowedError') {
+      setStatus('error', 'Permission denied');
+      showMessage('Error: Microphone permission denied. Please allow access in browser settings.', 'error');
+    } else if (err.name === 'NotFoundError') {
+      setStatus('error', 'No microphone found');
+      showMessage('Error: No microphone found. Please connect a microphone and try again.', 'error');
+    } else {
+      setStatus('error', 'Microphone access denied');
+      showMessage('Error: Could not access microphone. Please allow microphone access.', 'error');
+    }
   }
 }
 
@@ -593,10 +630,19 @@ function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
   }
-  elements.recordBtn.disabled = false;
+  // Update toggle button to show Record state
+  elements.recordBtn.textContent = 'Record';
   elements.recordBtn.classList.remove('recording');
-  elements.stopBtn.disabled = true;
   updateMobileToolbarState();
+}
+
+// Toggle between recording and stopping
+function toggleRecording() {
+  if (isRecording()) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
 }
 
 // Transcription
@@ -752,11 +798,51 @@ function showMessage(text, type = '') {
 
 // Settings panel
 function openSettingsPanel() {
+  // Get current mic info for display
+  const hasLabels = audioDevices.hasLabels();
+  const activeMicLabel = audioDevices.getActiveMicLabel();
+  const devices = audioDevices.getDevices();
+  const selectedId = audioDevices.getSelectedDeviceId();
+  const shouldShowSelector = audioDevices.shouldShowSelector();
+  
   createAddonWindow('Settings', (container) => {
     const enableToolbarChecked = mobileSettings.enableMobileToolbar === null ? '' : (mobileSettings.enableMobileToolbar ? 'checked' : '');
     const toolbarDisabled = mobileSettings.enableMobileToolbar === null;
     
+    // Build mic options HTML
+    let micOptionsHtml = '<option value="">Default microphone</option>';
+    if (hasLabels && devices.length > 0) {
+      devices.forEach(device => {
+        if (device.deviceId === 'default') return;
+        const selected = device.deviceId === selectedId ? 'selected' : '';
+        const label = device.label || `Microphone (${device.deviceId.substring(0, 8)}...)`;
+        micOptionsHtml += `<option value="${device.deviceId}" ${selected}>${label}</option>`;
+      });
+    }
+    
     container.innerHTML = `
+      <div class="settings-section-title">Microphone</div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+          Active mic: <span id="settingActiveMic" style="color: var(--text-primary);">${activeMicLabel}</span>
+        </div>
+        ${!hasLabels ? `
+          <button id="settingMicEnableBtn" class="small" style="margin-bottom: 0.5rem;">Enable microphone access</button>
+          <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">Grant permission to see available devices</span>
+        ` : ''}
+        ${shouldShowSelector ? `
+          <label style="margin-bottom: 0.5rem;">Select microphone</label>
+          <select id="settingMicSelector" class="formatting-select" style="width: 100%;">
+            ${micOptionsHtml}
+          </select>
+          <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Selection persists across sessions</span>
+        ` : ''}
+        ${hasLabels && !shouldShowSelector ? `
+          <span style="font-size: 0.7rem; color: var(--text-muted);">Only one microphone available</span>
+        ` : ''}
+      </div>
+      
       <div class="settings-section-title">Mobile/Tablet</div>
       
       <div class="form-group" style="margin-bottom: 1rem;">
@@ -885,6 +971,40 @@ function openSettingsPanel() {
         <p><strong>Ctrl+Shift+C</strong> – Copy transcript</p>
       </div>
     `;
+    
+    // Event handlers - Microphone Settings
+    const micEnableBtn = container.querySelector('#settingMicEnableBtn');
+    if (micEnableBtn) {
+      micEnableBtn.addEventListener('click', async function() {
+        const success = await audioDevices.requestMicPermission();
+        if (success) {
+          showMessage('Microphone access enabled', 'success');
+          // Close and re-open settings to refresh UI with device list
+          // Find and close the current settings window
+          const settingsWindow = container.closest('.addon-window');
+          if (settingsWindow) {
+            settingsWindow.remove();
+          }
+          // Re-open with fresh state
+          setTimeout(() => openSettingsPanel(), 100);
+        } else {
+          showMessage('Microphone access denied', 'error');
+        }
+      });
+    }
+    
+    const micSelector = container.querySelector('#settingMicSelector');
+    if (micSelector) {
+      micSelector.addEventListener('change', function(e) {
+        const deviceId = e.target.value || null;
+        audioDevices.selectDevice(deviceId);
+        // Update the active mic label
+        const activeMicSpan = container.querySelector('#settingActiveMic');
+        if (activeMicSpan) {
+          activeMicSpan.textContent = audioDevices.getActiveMicLabel();
+        }
+      });
+    }
     
     // Event handlers - Mobile Settings
     container.querySelector('#settingEnableToolbar').addEventListener('click', function() {
@@ -1216,10 +1336,12 @@ export async function init(container) {
   // Initialize IndexedDB storage
   storageInitialized = await storage.initDB();
   
+  // Initialize audio devices module
+  await audioDevices.init();
+  
   // Cache DOM elements
   elements = {
     recordBtn: container.querySelector('#recordBtn'),
-    stopBtn: container.querySelector('#stopBtn'),
     transcribeAllBtn: container.querySelector('#transcribeAllBtn'),
     clearBtn: container.querySelector('#clearBtn'),
     copyBtn: container.querySelector('#copyBtn'),
@@ -1245,8 +1367,7 @@ export async function init(container) {
   }
 
   // Event listeners
-  elements.recordBtn?.addEventListener('click', startRecording);
-  elements.stopBtn?.addEventListener('click', stopRecording);
+  elements.recordBtn?.addEventListener('click', toggleRecording);
   elements.transcribeAllBtn?.addEventListener('click', transcribeAll);
   elements.clearBtn?.addEventListener('click', async (e) => {
     // Shift+Click bypasses confirmation; also skip if confirmClear is false
