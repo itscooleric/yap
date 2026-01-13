@@ -4,6 +4,7 @@
 import { util } from './util.js';
 import { createAddonWindow } from './addons.js';
 import { openExportPanel } from './export.js';
+import { storage } from './storage.js';
 
 // Import data module for metrics recording
 function getDataModule() {
@@ -19,6 +20,7 @@ let analyser = null;
 let animationId = null;
 let startTime = null;
 let timerInterval = null;
+let storageInitialized = false;
 
 // Clips list: { id, createdAt, durationMs, mimeType, blob, objectUrl, status, transcript }
 // status: 'recorded' | 'queued' | 'working' | 'transcribed' | 'error'
@@ -335,7 +337,7 @@ function updateClipsUI() {
   updateMobileToolbarState();
 }
 
-function addClip(blob, mimeType, durationMs) {
+async function addClip(blob, mimeType, durationMs) {
   const id = util.generateId();
   const objectUrl = URL.createObjectURL(blob);
   const clip = {
@@ -350,20 +352,31 @@ function addClip(blob, mimeType, durationMs) {
   };
   clips.push(clip);
   updateClipsUI();
+  
+  // Persist to IndexedDB
+  if (storageInitialized) {
+    await storage.saveClip(clip);
+  }
+  
   return clip;
 }
 
-function removeClip(id) {
+async function removeClip(id) {
   const index = clips.findIndex(c => c.id === id);
   if (index !== -1) {
     const clip = clips[index];
     URL.revokeObjectURL(clip.objectUrl);
     clips.splice(index, 1);
     updateClipsUI();
+    
+    // Remove from IndexedDB
+    if (storageInitialized) {
+      await storage.deleteClip(id);
+    }
   }
 }
 
-function clearAllClips() {
+async function clearAllClips() {
   clips.forEach(clip => URL.revokeObjectURL(clip.objectUrl));
   clips = [];
   if (elements.transcript) {
@@ -373,9 +386,14 @@ function clearAllClips() {
   elements.downloadTxtBtn.disabled = true;
   updateClipsUI();
   setStatus('', 'Idle');
+  
+  // Clear from IndexedDB
+  if (storageInitialized) {
+    await storage.clearAllClips();
+  }
 }
 
-function updateClipStatus(id, status, transcript = null) {
+async function updateClipStatus(id, status, transcript = null) {
   const clip = clips.find(c => c.id === id);
   if (clip) {
     clip.status = status;
@@ -383,6 +401,11 @@ function updateClipStatus(id, status, transcript = null) {
       clip.transcript = transcript;
     }
     updateClipsUI();
+    
+    // Persist transcript update to IndexedDB
+    if (storageInitialized && (transcript !== null || status === 'transcribed')) {
+      await storage.updateClipTranscript(id, clip.transcript, status);
+    }
   }
 }
 
@@ -1156,9 +1179,35 @@ function setupBeforeUnloadHandler() {
   }
 }
 
+// Restore session from IndexedDB
+async function restoreSession() {
+  const hasSaved = await storage.hasSavedClips();
+  if (!hasSaved) return;
+  
+  // Prompt user to restore
+  const restore = confirm('You have saved recordings from a previous session. Would you like to restore them?');
+  
+  if (restore) {
+    const savedClips = await storage.loadClips();
+    if (savedClips.length > 0) {
+      clips = savedClips;
+      updateClipsUI();
+      updateTranscriptDisplay();
+      showMessage(`Restored ${savedClips.length} clip(s)`, 'success');
+      setStatus('done', 'Session restored');
+    }
+  } else {
+    // User declined, clear saved clips
+    await storage.clearAllClips();
+  }
+}
+
 // Initialize ASR tab
-export function init(container) {
+export async function init(container) {
   loadSettings();
+  
+  // Initialize IndexedDB storage
+  storageInitialized = await storage.initDB();
   
   // Cache DOM elements
   elements = {
@@ -1192,11 +1241,11 @@ export function init(container) {
   elements.recordBtn?.addEventListener('click', startRecording);
   elements.stopBtn?.addEventListener('click', stopRecording);
   elements.transcribeAllBtn?.addEventListener('click', transcribeAll);
-  elements.clearBtn?.addEventListener('click', (e) => {
+  elements.clearBtn?.addEventListener('click', async (e) => {
     // Shift+Click bypasses confirmation; also skip if confirmClear is false
     const shouldConfirm = transcriptSettings.confirmClear && !e.shiftKey;
     if (!shouldConfirm || confirm('Clear all clips and transcript?')) {
-      clearAllClips();
+      await clearAllClips();
       showMessage('Cleared', 'success');
     }
   });
@@ -1289,6 +1338,11 @@ export function init(container) {
   
   // Setup beforeunload handler for refresh protection
   setupBeforeUnloadHandler();
+  
+  // Restore saved session if available
+  if (storageInitialized) {
+    await restoreSession();
+  }
   
   // Expose state for addons
   window.yapState = window.yapState || {};

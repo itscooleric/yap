@@ -169,7 +169,7 @@ async function init() {
   
   // Initialize ASR
   if (tabs.asr) {
-    asr.init(tabs.asr);
+    await asr.init(tabs.asr);
   }
   
   // Initialize TTS
