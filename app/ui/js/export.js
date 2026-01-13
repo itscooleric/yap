@@ -1026,7 +1026,7 @@ export function openExportPanel(getTranscript, getClips) {
     }
     
     render();
-  }, { width: 440, height: 520, windowId: 'export' });
+  }, { width: 440, height: 520 });
 }
 
 export const exportModule = { openExportPanel };

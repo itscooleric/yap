@@ -39,11 +39,20 @@ let transcriptSettings = {
   confirmDeleteClip: true
 };
 
+// Mobile toolbar settings
+let mobileSettings = {
+  enableMobileToolbar: null, // null = auto-detect, true = force on, false = force off
+  confirmExport: true,
+  oneTapExport: false,
+  lastExportTarget: null
+};
+
 // DOM elements (set in init)
 let elements = {};
 
 // Constants
 const BAR_COUNT = 48;
+const MOBILE_BREAKPOINT = 900; // px
 
 // Load settings from localStorage
 function loadSettings() {
@@ -60,6 +69,13 @@ function loadSettings() {
     confirmClear: util.storage.get('settings.asr.confirmClear', true),
     confirmDeleteClip: util.storage.get('settings.asr.confirmDeleteClip', true)
   };
+  
+  mobileSettings = {
+    enableMobileToolbar: util.storage.get('settings.mobile.enableToolbar', null),
+    confirmExport: util.storage.get('settings.mobile.confirmExport', true),
+    oneTapExport: util.storage.get('settings.mobile.oneTapExport', false),
+    lastExportTarget: util.storage.get('settings.mobile.lastExportTarget', null)
+  };
 }
 
 // Save settings to localStorage
@@ -74,6 +90,13 @@ function saveSettings() {
   util.storage.set('settings.asr.autoCopy', transcriptSettings.autoCopy);
   util.storage.set('settings.asr.confirmClear', transcriptSettings.confirmClear);
   util.storage.set('settings.asr.confirmDeleteClip', transcriptSettings.confirmDeleteClip);
+}
+
+function saveMobileSettings() {
+  util.storage.set('settings.mobile.enableToolbar', mobileSettings.enableMobileToolbar);
+  util.storage.set('settings.mobile.confirmExport', mobileSettings.confirmExport);
+  util.storage.set('settings.mobile.oneTapExport', mobileSettings.oneTapExport);
+  util.storage.set('settings.mobile.lastExportTarget', mobileSettings.lastExportTarget);
 }
 
 // Format transcript text for display/copy based on settings
@@ -697,8 +720,36 @@ function showMessage(text, type = '') {
 
 // Settings panel
 function openSettingsPanel() {
-  createAddonWindow('Settings', (container) => {
+  createAddonWindow('ASR Settings', (container) => {
+    const enableToolbarChecked = mobileSettings.enableMobileToolbar === null ? '' : (mobileSettings.enableMobileToolbar ? 'checked' : '');
+    const toolbarDisabled = mobileSettings.enableMobileToolbar === null;
+    
     container.innerHTML = `
+      <div class="settings-section-title">Mobile/Tablet</div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch ${mobileSettings.enableMobileToolbar === true ? 'active' : ''}" id="settingEnableToolbar"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">Enable mobile toolbar</span>
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2.8rem;">Auto-enabled on screens < 900px</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch ${mobileSettings.confirmExport ? 'active' : ''}" id="settingConfirmExport"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">Confirm before export</span>
+        </div>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch ${mobileSettings.oneTapExport ? 'active' : ''}" id="settingOneTapExport"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">One-tap export uses last target</span>
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2.8rem;">Requires confirm export OFF</span>
+      </div>
+      
       <div class="settings-section-title">Data & Metrics</div>
       
       <div class="form-group" style="margin-bottom: 1rem;">
@@ -795,6 +846,30 @@ function openSettingsPanel() {
       </div>
     `;
     
+    // Event handlers - Mobile Settings
+    container.querySelector('#settingEnableToolbar').addEventListener('click', function() {
+      if (mobileSettings.enableMobileToolbar === null) {
+        mobileSettings.enableMobileToolbar = true;
+      } else {
+        mobileSettings.enableMobileToolbar = !mobileSettings.enableMobileToolbar;
+      }
+      this.classList.toggle('active', mobileSettings.enableMobileToolbar === true);
+      saveMobileSettings();
+      updateMobileToolbarVisibility();
+    });
+    
+    container.querySelector('#settingConfirmExport').addEventListener('click', function() {
+      mobileSettings.confirmExport = !mobileSettings.confirmExport;
+      this.classList.toggle('active', mobileSettings.confirmExport);
+      saveMobileSettings();
+    });
+    
+    container.querySelector('#settingOneTapExport').addEventListener('click', function() {
+      mobileSettings.oneTapExport = !mobileSettings.oneTapExport;
+      this.classList.toggle('active', mobileSettings.oneTapExport);
+      saveMobileSettings();
+    });
+    
     // Event handler - Metrics
     const metricsToggle = container.querySelector('#settingEnableMetrics');
     if (metricsToggle) {
@@ -874,7 +949,133 @@ function openSettingsPanel() {
       saveSettings();
       updateTranscriptDisplay();
     });
-  }, { width: 380, height: 550, windowId: 'settings' });
+  }, { width: 380, height: 550 });
+}
+
+// Mobile toolbar functions
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+function updateMobileToolbarVisibility() {
+  const toolbar = document.querySelector('#mobileToolbar');
+  if (!toolbar) return;
+  
+  const viewportWidth = window.innerWidth;
+  const shouldShow = mobileSettings.enableMobileToolbar === true || 
+                     (mobileSettings.enableMobileToolbar === null && viewportWidth < MOBILE_BREAKPOINT);
+  
+  toolbar.style.display = shouldShow ? 'block' : 'none';
+}
+
+function updateMobileToolbarState() {
+  const mobileRecordBtn = document.querySelector('#mobileRecordBtn');
+  const mobileTranscribeBtn = document.querySelector('#mobileTranscribeBtn');
+  const mobileCopyBtn = document.querySelector('#mobileCopyBtn');
+  const mobileExportBtn = document.querySelector('#mobileExportBtn');
+  const mobileStatusDot = document.querySelector('#mobileStatusDot');
+  const mobileStatusText = document.querySelector('#mobileStatusText');
+  
+  if (!mobileRecordBtn) return;
+  
+  // Update Record/Stop button
+  const isRecording = mediaRecorder && mediaRecorder.state === 'recording';
+  if (isRecording) {
+    mobileRecordBtn.innerHTML = '<span class="mobile-btn-icon">⏹</span><span class="mobile-btn-label">Stop</span>';
+    mobileRecordBtn.classList.add('recording');
+    mobileRecordBtn.classList.remove('mobile-btn-primary');
+  } else {
+    mobileRecordBtn.innerHTML = '<span class="mobile-btn-icon">⏺</span><span class="mobile-btn-label">Record</span>';
+    mobileRecordBtn.classList.remove('recording');
+    mobileRecordBtn.classList.add('mobile-btn-primary');
+  }
+  
+  // Update Transcribe button
+  const hasUntranscribed = clips.some(c => c.status === 'recorded');
+  mobileTranscribeBtn.disabled = !hasUntranscribed;
+  
+  // Update Copy and Export buttons
+  const hasTranscript = getCombinedTranscript().trim().length > 0;
+  mobileCopyBtn.disabled = !hasTranscript;
+  mobileExportBtn.disabled = !hasTranscript;
+  
+  // Update status
+  if (isRecording) {
+    mobileStatusDot.className = 'mobile-status-dot recording';
+    mobileStatusText.textContent = 'Recording';
+  } else if (clips.some(c => c.status === 'working')) {
+    mobileStatusDot.className = 'mobile-status-dot working';
+    mobileStatusText.textContent = 'Transcribing...';
+  } else if (hasTranscript) {
+    mobileStatusDot.className = 'mobile-status-dot success';
+    mobileStatusText.textContent = 'Ready';
+  } else {
+    mobileStatusDot.className = 'mobile-status-dot idle';
+    mobileStatusText.textContent = 'Idle';
+  }
+}
+
+function setupMobileToolbar(container) {
+  const mobileRecordBtn = container.querySelector('#mobileRecordBtn');
+  const mobileTranscribeBtn = container.querySelector('#mobileTranscribeBtn');
+  const mobileCopyBtn = container.querySelector('#mobileCopyBtn');
+  const mobileExportBtn = container.querySelector('#mobileExportBtn');
+  const mobileMenuBtn = container.querySelector('#mobileMenuBtn');
+  
+  if (!mobileRecordBtn) return;
+  
+  // Record/Stop button
+  mobileRecordBtn.addEventListener('click', () => {
+    const isRecording = mediaRecorder && mediaRecorder.state === 'recording';
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  });
+  
+  // Transcribe button
+  mobileTranscribeBtn.addEventListener('click', () => {
+    transcribeAll();
+  });
+  
+  // Copy button
+  mobileCopyBtn.addEventListener('click', () => {
+    copyTranscript();
+    showToast('Copied to clipboard');
+  });
+  
+  // Export button
+  mobileExportBtn.addEventListener('click', () => {
+    if (mobileSettings.oneTapExport && mobileSettings.lastExportTarget) {
+      // TODO: Implement one-tap export with last target
+      showToast('One-tap export not yet implemented');
+    } else {
+      openExportPanel(
+        () => getCombinedTranscript(),
+        () => clips.slice()
+      );
+    }
+  });
+  
+  // Menu button - opens settings
+  mobileMenuBtn.addEventListener('click', () => {
+    openSettings();
+  });
+  
+  // Update toolbar on window resize
+  window.addEventListener('resize', updateMobileToolbarVisibility);
+  
+  // Initial visibility
+  updateMobileToolbarVisibility();
+  updateMobileToolbarState();
 }
 
 // Initialize ASR tab
@@ -1004,6 +1205,9 @@ export function init(container) {
   // Initial state
   updateClipsUI();
   drawIdleBars();
+  
+  // Setup mobile toolbar
+  setupMobileToolbar(container);
   
   // Expose state for addons
   window.yapState = window.yapState || {};

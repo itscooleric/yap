@@ -5,7 +5,7 @@ import { asr } from './asr.js';
 import { tts } from './tts.js';
 import * as data from './data.js';
 import { initAddonPanel } from './addons.js';
-// Note: metrics.js is deprecated - use data.js for server-backed metrics
+import { metrics } from './metrics.js';
 
 // App state
 let activeTab = 'asr';
@@ -208,6 +208,23 @@ async function init() {
       switchTab(tabName);
     });
   });
+  
+  // Setup mobile toolbar global navigation
+  const mobileDataBtn = document.getElementById('mobileDataBtn');
+  const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+  
+  if (mobileDataBtn) {
+    mobileDataBtn.addEventListener('click', () => {
+      switchTab('data');
+    });
+  }
+  
+  if (mobileSettingsBtn) {
+    mobileSettingsBtn.addEventListener('click', () => {
+      // Open ASR settings (could be made context-aware in future)
+      asr.openSettingsPanel();
+    });
+  }
   
   // Setup recording indicator
   setupRecordingIndicator();

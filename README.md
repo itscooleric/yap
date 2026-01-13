@@ -13,8 +13,6 @@
 
 Local LAN web tools for speech-to-text (ASR) and text-to-speech (TTS).
 
-> **💡 Accessing Data & Metrics**: The Data tab is always visible in the top navigation. Metrics tracking is enabled by default to help you monitor usage. You can disable it by setting `METRICS_ENABLED=false` in your environment. See the [Data & Metrics Guide](docs/DATA.md) for details.
-
 ---
 
 ## Quick Navigation
@@ -24,6 +22,7 @@ Local LAN web tools for speech-to-text (ASR) and text-to-speech (TTS).
 **Documentation:**
 - 📖 [User Guide](docs/USER_GUIDE.md) - Complete interface and workflow documentation
 - 📊 [Data & Metrics](docs/DATA.md) - Usage tracking and analytics
+- 📱 [Mobile & Tablet](docs/MOBILE.md) - Touch-optimized interface guide
 - 📤 [Export Setup](docs/EXPORT.md) - GitLab, GitHub, SFTP, and webhook configuration
 - 🧪 [Testing](tests/README.md) - Automated test suite documentation
 
@@ -53,33 +52,59 @@ This is achieved via Caddy labels (production) or nginx proxy (local mode).
 
 ## Features
 
-### ASR (Speech-to-Text)
-- Multi-clip audio recording with live waveform visualization
-- OpenAI Whisper-powered transcription
-- One-click copy and export
-- Configurable formatting and auto-transcribe options
-- Keyboard shortcuts for efficient workflow
+### ASR Tab
+- Browser-based multi-clip audio recording with live waveform visualization
+- Whisper-powered transcription with per-clip status tracking
+- Single Copy button copies complete transcript
+- Configurable transcript formatting (separators, whitespace cleanup)
+- Auto-transcribe and auto-copy options
+- **Export** to GitLab, GitHub, SFTP, or webhooks
+- Keyboard shortcuts: Space (record/stop), Ctrl+Enter (transcribe), Ctrl+Shift+C (copy)
 
-**→ [Full ASR Guide](docs/USER_GUIDE.md#asr-tab)**
+**See the [User Guide](docs/USER_GUIDE.md) for detailed ASR documentation.**
 
-### TTS (Text-to-Speech)
-- Text input or file upload (.txt, .md)
-- Multiple voices with Piper TTS
-- Markdown preview and read-along mode
-- Adjustable speaking rate
-- Download audio as .wav
+### TTS Tab
+- Text input or file upload (supports .txt and .md files)
+- Multiple voice selection with preference persistence
+- Adjustable speaking rate (0.5× to 2.0×)
+- **Markdown preview** with prominent Plain/Markdown toggle
+- **Read-along mode** with dedicated panel and paragraph highlighting
+- Audio playback with Media Session API support
+- Download generated audio as .wav files
+- Keyboard shortcut: Ctrl+Enter to synthesize
 
-**→ [Full TTS Guide](docs/USER_GUIDE.md#tts-tab)**
+**See the [User Guide](docs/USER_GUIDE.md) for detailed TTS documentation.**
 
 ### Export
-Export transcripts to GitLab, GitHub, SFTP, or webhooks. Save profiles for quick access.
+- Export transcripts to **GitLab** or **GitHub** repositories (commit files directly)
+- Upload transcripts via **SFTP**
+- **Generic webhooks** - POST to any HTTP endpoint (n8n, Zapier, custom servers)
+- **GitLab via Webhook** - Commit via proxy server (recommended, avoids CORS)
+- Save export profiles for quick access and one-tap export
 
-**→ [Export Setup Guide](docs/EXPORT.md)**
+**See the [Export Guide](docs/EXPORT.md) for complete setup instructions.**
 
-### Data & Metrics
-Track your ASR and TTS usage with local-only metrics. Always visible in the navigation, enabled by default.
+### Data Tab (Metrics)
+- **Always visible** in main navigation for easy access
+- **Local-only metrics** - Track ASR and TTS usage, data never leaves your server
+- Summary cards: minutes recorded, transcribed, and TTS generated
+- Event history table with filtering, pagination, and timestamps
+- Export history as JSON for analysis
+- Clear history functionality with confirmation
+- **Enabled by default** - Set `METRICS_ENABLED=false` to disable
+- When disabled, shows one-click enable button
 
-**→ [Data & Metrics Guide](docs/DATA.md)**
+**See the [Data & Metrics Guide](docs/DATA.md) for complete documentation.**
+
+### Apps (Optional)
+> **Note**: The Apps ecosystem is disabled by default. Enable it by setting `enableApps: true` in `app/ui/config.js`.
+
+When enabled:
+- Non-modal draggable/resizable app windows
+- **Built-in Apps**:
+  - **Send (Webhook)**: Send transcript or conversation data to webhooks
+- **External Apps**: Load additional apps from a manifest URL
+- See [Apps Documentation](add-ons/README.md) for details
 
 ## Screenshots
 

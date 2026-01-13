@@ -7,9 +7,6 @@ let windowZIndex = 1001;
 let windowCascadeOffset = 0;
 const CASCADE_STEP = 24;
 
-// Window registry for singleton enforcement
-const windowRegistry = {};
-
 // HTML escape function to prevent XSS
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -210,21 +207,6 @@ function getCenteredPosition(winWidth, winHeight) {
 
 // Create a draggable, resizable app window
 export function createAppWindow(title, contentRenderer, options = {}) {
-  const windowId = options.windowId || null;
-  
-  // Check if a singleton window with this ID already exists
-  if (windowId && windowRegistry[windowId]) {
-    const existingWin = windowRegistry[windowId];
-    // Bring to front and return existing window (with additional null/parentNode checks)
-    if (existingWin && existingWin.parentNode && document.body.contains(existingWin)) {
-      existingWin.style.zIndex = ++windowZIndex;
-      return existingWin;
-    } else {
-      // Window was removed but not cleaned up from registry
-      delete windowRegistry[windowId];
-    }
-  }
-  
   const winWidth = options.width || 360;
   const winHeight = options.height || 320;
   
@@ -249,11 +231,6 @@ export function createAppWindow(title, contentRenderer, options = {}) {
   `;
 
   document.body.appendChild(win);
-  
-  // Register as singleton if windowId provided
-  if (windowId) {
-    windowRegistry[windowId] = win;
-  }
 
   const header = win.querySelector('.addon-window-header');
   const closeBtn = win.querySelector('.addon-window-close');
@@ -263,10 +240,6 @@ export function createAppWindow(title, contentRenderer, options = {}) {
   // Close
   closeBtn.addEventListener('click', () => {
     win.remove();
-    // Clean up from registry
-    if (windowId && windowRegistry[windowId] === win) {
-      delete windowRegistry[windowId];
-    }
   });
 
   // Bring to front on click
@@ -495,7 +468,7 @@ export function initSettingsPanel() {
 
 // Open settings window
 function openSettingsWindow() {
-  createAppWindow('Settings', renderSettingsPanel, { width: 400, height: 400, windowId: 'settings' });
+  createAppWindow('Settings', renderSettingsPanel, { width: 400, height: 400 });
 }
 
 // Render settings panel - dynamically built from enabled apps' settings
