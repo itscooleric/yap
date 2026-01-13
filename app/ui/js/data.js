@@ -9,6 +9,10 @@ let currentRange = '7d';
 let currentPage = 1;
 let totalPages = 1;
 const PAGE_SIZE = 50;
+const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
+
+// Auto-refresh state
+let autoRefreshTimer = null;
 
 // DOM elements
 let elements = {};
@@ -46,7 +50,9 @@ export async function init(container) {
     historyPrevBtn: container.querySelector('#historyPrevBtn'),
     historyNextBtn: container.querySelector('#historyNextBtn'),
     historyPageInfo: container.querySelector('#historyPageInfo'),
-    message: container.querySelector('#dataMessage')
+    message: container.querySelector('#dataMessage'),
+    refreshBtn: container.querySelector('#refreshMetricsBtn'),
+    autoRefreshToggle: container.querySelector('#autoRefreshToggle')
   };
 
   // Check metrics status
@@ -100,6 +106,21 @@ function setupEventHandlers() {
     });
   });
 
+  // Refresh button
+  elements.refreshBtn?.addEventListener('click', async () => {
+    await refreshData();
+    showMessage('Data refreshed', 'success');
+  });
+  
+  // Auto-refresh toggle
+  elements.autoRefreshToggle?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      startAutoRefresh();
+    } else {
+      stopAutoRefresh();
+    }
+  });
+
   // Export history
   elements.exportHistoryBtn?.addEventListener('click', exportHistory);
 
@@ -124,6 +145,28 @@ function setupEventHandlers() {
       await loadHistory();
     }
   });
+}
+
+// Refresh all data
+async function refreshData() {
+  await loadSummary();
+  await loadHistory();
+}
+
+// Start auto-refresh timer
+function startAutoRefresh() {
+  if (autoRefreshTimer) return; // Already running
+  autoRefreshTimer = setInterval(async () => {
+    await refreshData();
+  }, AUTO_REFRESH_INTERVAL);
+}
+
+// Stop auto-refresh timer
+function stopAutoRefresh() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
 }
 
 // Load summary statistics

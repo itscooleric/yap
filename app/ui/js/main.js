@@ -209,23 +209,6 @@ async function init() {
     });
   });
   
-  // Setup mobile toolbar global navigation
-  const mobileDataBtn = document.getElementById('mobileDataBtn');
-  const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
-  
-  if (mobileDataBtn) {
-    mobileDataBtn.addEventListener('click', () => {
-      switchTab('data');
-    });
-  }
-  
-  if (mobileSettingsBtn) {
-    mobileSettingsBtn.addEventListener('click', () => {
-      // Open ASR settings (could be made context-aware in future)
-      asr.openSettingsPanel();
-    });
-  }
-  
   // Setup recording indicator
   setupRecordingIndicator();
   

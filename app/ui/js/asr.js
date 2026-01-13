@@ -74,7 +74,8 @@ function loadSettings() {
     enableMobileToolbar: util.storage.get('settings.mobile.enableToolbar', null),
     confirmExport: util.storage.get('settings.mobile.confirmExport', true),
     oneTapExport: util.storage.get('settings.mobile.oneTapExport', false),
-    lastExportTarget: util.storage.get('settings.mobile.lastExportTarget', null)
+    lastExportTarget: util.storage.get('settings.mobile.lastExportTarget', null),
+    preventRefresh: util.storage.get('settings.mobile.preventRefresh', true) // Default ON
   };
 }
 
@@ -97,6 +98,7 @@ function saveMobileSettings() {
   util.storage.set('settings.mobile.confirmExport', mobileSettings.confirmExport);
   util.storage.set('settings.mobile.oneTapExport', mobileSettings.oneTapExport);
   util.storage.set('settings.mobile.lastExportTarget', mobileSettings.lastExportTarget);
+  util.storage.set('settings.mobile.preventRefresh', mobileSettings.preventRefresh);
 }
 
 // Format transcript text for display/copy based on settings
@@ -720,7 +722,7 @@ function showMessage(text, type = '') {
 
 // Settings panel
 function openSettingsPanel() {
-  createAddonWindow('ASR Settings', (container) => {
+  createAddonWindow('Settings', (container) => {
     const enableToolbarChecked = mobileSettings.enableMobileToolbar === null ? '' : (mobileSettings.enableMobileToolbar ? 'checked' : '');
     const toolbarDisabled = mobileSettings.enableMobileToolbar === null;
     
@@ -733,6 +735,14 @@ function openSettingsPanel() {
           <span style="font-size: 0.8rem; color: var(--text-primary);">Enable mobile toolbar</span>
         </div>
         <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2.8rem;">Auto-enabled on screens < 900px</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch ${mobileSettings.preventRefresh ? 'active' : ''}" id="settingPreventRefresh"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">Prevent accidental refresh</span>
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2.8rem;">Warn before leaving with unsaved work</span>
       </div>
       
       <div class="form-group" style="margin-bottom: 1rem;">
@@ -858,6 +868,13 @@ function openSettingsPanel() {
       updateMobileToolbarVisibility();
     });
     
+    container.querySelector('#settingPreventRefresh').addEventListener('click', function() {
+      mobileSettings.preventRefresh = !mobileSettings.preventRefresh;
+      this.classList.toggle('active', mobileSettings.preventRefresh);
+      saveMobileSettings();
+      setupBeforeUnloadHandler();
+    });
+    
     container.querySelector('#settingConfirmExport').addEventListener('click', function() {
       mobileSettings.confirmExport = !mobileSettings.confirmExport;
       this.classList.toggle('active', mobileSettings.confirmExport);
@@ -949,19 +966,32 @@ function openSettingsPanel() {
       saveSettings();
       updateTranscriptDisplay();
     });
-  }, { width: 380, height: 550 });
+  }, { width: 380, height: 580, singleton: true, singletonId: 'settings-panel' });
 }
 
 // Mobile toolbar functions
-function showToast(message) {
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.remove();
-  }, 3000);
+function showToast(message, type = '') {
+  // Try to use the fixed toast element first
+  let toast = document.getElementById('toastNotification');
+  if (toast) {
+    toast.textContent = message;
+    toast.className = 'toast-notification' + (type ? ' ' + type : '');
+    toast.style.display = 'block';
+    
+    setTimeout(() => {
+      toast.style.display = 'none';
+    }, 2500);
+  } else {
+    // Fallback: create a temporary toast
+    toast = document.createElement('div');
+    toast.className = 'toast' + (type ? ' ' + type : '');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.remove();
+    }, 2500);
+  }
 }
 
 function updateMobileToolbarVisibility() {
@@ -972,7 +1002,7 @@ function updateMobileToolbarVisibility() {
   const shouldShow = mobileSettings.enableMobileToolbar === true || 
                      (mobileSettings.enableMobileToolbar === null && viewportWidth < MOBILE_BREAKPOINT);
   
-  toolbar.style.display = shouldShow ? 'block' : 'none';
+  toolbar.style.display = shouldShow ? 'flex' : 'none';
 }
 
 function updateMobileToolbarState() {
@@ -985,21 +1015,38 @@ function updateMobileToolbarState() {
   
   if (!mobileRecordBtn) return;
   
-  // Update Record/Stop button
+  // Update Record/Stop button with SVG icons
   const isRecording = mediaRecorder && mediaRecorder.state === 'recording';
+  const recordIcon = mobileRecordBtn.querySelector('.fab-icon:not(.fab-icon-stop)');
+  const stopIcon = mobileRecordBtn.querySelector('.fab-icon-stop');
+  
   if (isRecording) {
-    mobileRecordBtn.innerHTML = '<span class="mobile-btn-icon">⏹</span><span class="mobile-btn-label">Stop</span>';
-    mobileRecordBtn.classList.add('recording');
-    mobileRecordBtn.classList.remove('mobile-btn-primary');
+    if (recordIcon) recordIcon.style.display = 'none';
+    if (stopIcon) stopIcon.style.display = 'block';
+    mobileRecordBtn.classList.add('fab-recording');
+    mobileRecordBtn.title = 'Stop';
   } else {
-    mobileRecordBtn.innerHTML = '<span class="mobile-btn-icon">⏺</span><span class="mobile-btn-label">Record</span>';
-    mobileRecordBtn.classList.remove('recording');
-    mobileRecordBtn.classList.add('mobile-btn-primary');
+    if (recordIcon) recordIcon.style.display = 'block';
+    if (stopIcon) stopIcon.style.display = 'none';
+    mobileRecordBtn.classList.remove('fab-recording');
+    mobileRecordBtn.title = 'Record';
   }
   
-  // Update Transcribe button
-  const hasUntranscribed = clips.some(c => c.status === 'recorded');
-  mobileTranscribeBtn.disabled = !hasUntranscribed;
+  // Update Transcribe button - show spinner when transcribing
+  const hasUntranscribed = clips.some(c => c.status === 'recorded' || c.status === 'queued');
+  const isTranscribing = clips.some(c => c.status === 'working');
+  const transcribeIcon = mobileTranscribeBtn.querySelector('.fab-icon');
+  const transcribeSpinner = mobileTranscribeBtn.querySelector('.fab-spinner');
+  
+  if (isTranscribing) {
+    if (transcribeIcon) transcribeIcon.style.display = 'none';
+    if (transcribeSpinner) transcribeSpinner.style.display = 'block';
+    mobileTranscribeBtn.disabled = true;
+  } else {
+    if (transcribeIcon) transcribeIcon.style.display = 'block';
+    if (transcribeSpinner) transcribeSpinner.style.display = 'none';
+    mobileTranscribeBtn.disabled = !hasUntranscribed;
+  }
   
   // Update Copy and Export buttons
   const hasTranscript = getCombinedTranscript().trim().length > 0;
@@ -1008,26 +1055,25 @@ function updateMobileToolbarState() {
   
   // Update status
   if (isRecording) {
-    mobileStatusDot.className = 'mobile-status-dot recording';
+    mobileStatusDot.className = 'fab-status-dot recording';
     mobileStatusText.textContent = 'Recording';
-  } else if (clips.some(c => c.status === 'working')) {
-    mobileStatusDot.className = 'mobile-status-dot working';
+  } else if (isTranscribing) {
+    mobileStatusDot.className = 'fab-status-dot working';
     mobileStatusText.textContent = 'Transcribing...';
   } else if (hasTranscript) {
-    mobileStatusDot.className = 'mobile-status-dot success';
+    mobileStatusDot.className = 'fab-status-dot success';
     mobileStatusText.textContent = 'Ready';
   } else {
-    mobileStatusDot.className = 'mobile-status-dot idle';
+    mobileStatusDot.className = 'fab-status-dot idle';
     mobileStatusText.textContent = 'Idle';
   }
 }
 
 function setupMobileToolbar(container) {
-  const mobileRecordBtn = container.querySelector('#mobileRecordBtn');
-  const mobileTranscribeBtn = container.querySelector('#mobileTranscribeBtn');
-  const mobileCopyBtn = container.querySelector('#mobileCopyBtn');
-  const mobileExportBtn = container.querySelector('#mobileExportBtn');
-  const mobileMenuBtn = container.querySelector('#mobileMenuBtn');
+  const mobileRecordBtn = document.querySelector('#mobileRecordBtn');
+  const mobileTranscribeBtn = document.querySelector('#mobileTranscribeBtn');
+  const mobileCopyBtn = document.querySelector('#mobileCopyBtn');
+  const mobileExportBtn = document.querySelector('#mobileExportBtn');
   
   if (!mobileRecordBtn) return;
   
@@ -1046,16 +1092,15 @@ function setupMobileToolbar(container) {
     transcribeAll();
   });
   
-  // Copy button
-  mobileCopyBtn.addEventListener('click', () => {
-    copyTranscript();
-    showToast('Copied to clipboard');
+  // Copy button with feedback
+  mobileCopyBtn.addEventListener('click', async () => {
+    const success = await copyTranscript();
+    showToast(success !== false ? 'Copied!' : 'Copy failed', success !== false ? 'success' : 'error');
   });
   
   // Export button
   mobileExportBtn.addEventListener('click', () => {
     if (mobileSettings.oneTapExport && mobileSettings.lastExportTarget) {
-      // TODO: Implement one-tap export with last target
       showToast('One-tap export not yet implemented');
     } else {
       openExportPanel(
@@ -1065,17 +1110,50 @@ function setupMobileToolbar(container) {
     }
   });
   
-  // Menu button - opens settings
-  mobileMenuBtn.addEventListener('click', () => {
-    openSettings();
-  });
-  
   // Update toolbar on window resize
   window.addEventListener('resize', updateMobileToolbarVisibility);
   
   // Initial visibility
   updateMobileToolbarVisibility();
   updateMobileToolbarState();
+}
+
+// Check if there's unsaved work (clips or transcripts)
+function hasUnsavedWork() {
+  // Check if there are any clips
+  if (clips.length > 0) return true;
+  
+  // Check if transcript has content
+  if (elements.transcript && elements.transcript.value.trim().length > 0) return true;
+  
+  return false;
+}
+
+// Beforeunload handler function reference (for adding/removing)
+let beforeUnloadHandler = null;
+
+// Setup beforeunload warning for unsaved work
+function setupBeforeUnloadHandler() {
+  // Remove existing handler if any
+  if (beforeUnloadHandler) {
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
+    beforeUnloadHandler = null;
+  }
+  
+  // Only add handler if prevent refresh is enabled
+  if (mobileSettings.preventRefresh) {
+    beforeUnloadHandler = (e) => {
+      if (hasUnsavedWork()) {
+        // Standard way to trigger browser's "are you sure?" dialog
+        e.preventDefault();
+        // Chrome requires returnValue to be set
+        e.returnValue = 'You have unsaved recordings. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+  }
 }
 
 // Initialize ASR tab
@@ -1208,6 +1286,9 @@ export function init(container) {
   
   // Setup mobile toolbar
   setupMobileToolbar(container);
+  
+  // Setup beforeunload handler for refresh protection
+  setupBeforeUnloadHandler();
   
   // Expose state for addons
   window.yapState = window.yapState || {};

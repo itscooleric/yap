@@ -32,42 +32,44 @@
     <main>
       <!-- ASR Tab -->
       <div id="asr-tab" class="tab-content active">
-        <!-- Mobile Sticky Toolbar -->
-        <div id="mobileToolbar" class="mobile-toolbar" style="display: none;">
-          <div class="mobile-toolbar-actions">
-            <button id="mobileRecordBtn" class="mobile-btn mobile-btn-primary" title="Record">
-              <span class="mobile-btn-icon">⏺</span>
-              <span class="mobile-btn-label">Record</span>
-            </button>
-            <button id="mobileTranscribeBtn" class="mobile-btn" disabled title="Transcribe">
-              <span class="mobile-btn-icon">📝</span>
-              <span class="mobile-btn-label">Transcribe</span>
-            </button>
-            <button id="mobileCopyBtn" class="mobile-btn" disabled title="Copy">
-              <span class="mobile-btn-icon">📋</span>
-              <span class="mobile-btn-label">Copy</span>
-            </button>
-            <button id="mobileExportBtn" class="mobile-btn" disabled title="Export">
-              <span class="mobile-btn-icon">📤</span>
-              <span class="mobile-btn-label">Export</span>
-            </button>
-            <button id="mobileDataBtn" class="mobile-btn" title="Data">
-              <span class="mobile-btn-icon">📊</span>
-              <span class="mobile-btn-label">Data</span>
-            </button>
-            <button id="mobileSettingsBtn" class="mobile-btn" title="Settings">
-              <span class="mobile-btn-icon">⚙️</span>
-              <span class="mobile-btn-label">Settings</span>
-            </button>
-            <button id="mobileMenuBtn" class="mobile-btn" title="More">
-              <span class="mobile-btn-icon">⋯</span>
-            </button>
-          </div>
-          <div class="mobile-toolbar-status">
-            <span class="mobile-status-dot" id="mobileStatusDot"></span>
+        <!-- Mobile Floating Action Cluster -->
+        <div id="mobileToolbar" class="mobile-fab-cluster" style="display: none;">
+          <button id="mobileRecordBtn" class="fab-btn fab-primary" title="Record">
+            <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="6"/>
+            </svg>
+            <svg class="fab-icon fab-icon-stop" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
+              <rect x="6" y="6" width="12" height="12" rx="2"/>
+            </svg>
+          </button>
+          <button id="mobileTranscribeBtn" class="fab-btn" disabled title="Transcribe">
+            <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 18.5V5.5M12 5.5l-4 4M12 5.5l4 4"/>
+              <path d="M4 12v5a2 2 0 002 2h12a2 2 0 002-2v-5"/>
+            </svg>
+            <span class="fab-spinner" style="display:none;"></span>
+          </button>
+          <button id="mobileCopyBtn" class="fab-btn" disabled title="Copy">
+            <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="10" height="12" rx="2"/>
+              <path d="M5 15V5a2 2 0 012-2h8"/>
+            </svg>
+          </button>
+          <button id="mobileExportBtn" class="fab-btn" disabled title="Export">
+            <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </button>
+          <div class="fab-status" id="mobileStatus">
+            <span class="fab-status-dot" id="mobileStatusDot"></span>
             <span id="mobileStatusText">Idle</span>
           </div>
         </div>
+        
+        <!-- Toast notification -->
+        <div id="toastNotification" class="toast-notification" style="display: none;"></div>
 
         <div class="panel">
           <div class="panel-header">Recording</div>
@@ -228,7 +230,24 @@
       <!-- Data Tab (Metrics/History) -->
       <div id="data-tab" class="tab-content">
         <div class="panel">
-          <div class="panel-header">Metrics Summary</div>
+          <div class="panel-header">
+            Metrics Summary
+            <div class="panel-actions">
+              <button class="small" id="refreshMetricsBtn" title="Refresh metrics">
+                <svg style="width: 12px; height: 12px; vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 4v6h-6"/>
+                  <path d="M1 20v-6h6"/>
+                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10"/>
+                  <path d="M20.49 15a9 9 0 01-14.85 3.36L1 14"/>
+                </svg>
+                Refresh
+              </button>
+              <label class="auto-refresh-toggle" title="Auto-refresh every 30 seconds">
+                <input type="checkbox" id="autoRefreshToggle">
+                <span style="font-size: 0.7rem;">Auto</span>
+              </label>
+            </div>
+          </div>
           
           <div id="metricsDisabledNotice" class="notice">
             <p><strong>Metrics are disabled</strong></p>
