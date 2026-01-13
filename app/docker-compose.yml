@@ -34,6 +34,12 @@ services:
       caddy.2_handle.rewrite: "* /docs"
       caddy.2_handle.reverse_proxy: "whisper-asr:9000"
       
+      # ASR health endpoint - maps /asr/health to whisper /health
+      caddy.2a_@asrHealthEndpoint.path: /asr/health
+      caddy.2b_handle: "@asrHealthEndpoint"
+      caddy.2b_handle.rewrite: "* /health"
+      caddy.2b_handle.reverse_proxy: "whisper-asr:9000"
+      
       # ASR API routing - proxy to whisper-asr backend
       # The whisper backend expects /asr endpoint directly
       caddy.3_@asr.path: /asr /asr/*

@@ -7,6 +7,9 @@ let windowZIndex = 1001;
 let windowCascadeOffset = 0;
 const CASCADE_STEP = 24;
 
+// Singleton window tracking - prevents multiple instances of same window
+const singletonWindows = new Map();
+
 // HTML escape function to prevent XSS
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -206,9 +209,27 @@ function getCenteredPosition(winWidth, winHeight) {
 }
 
 // Create a draggable, resizable app window
+// Options:
+//   - width, height: window dimensions
+//   - singleton: if true, only one window with this title can exist (focuses existing)
+//   - singletonId: custom ID for singleton tracking (defaults to title)
 export function createAppWindow(title, contentRenderer, options = {}) {
   const winWidth = options.width || 360;
   const winHeight = options.height || 320;
+  const singletonId = options.singletonId || (options.singleton ? title : null);
+  
+  // Singleton mode: if window already exists, focus it instead of creating new
+  if (singletonId && singletonWindows.has(singletonId)) {
+    const existingWin = singletonWindows.get(singletonId);
+    if (document.body.contains(existingWin)) {
+      // Bring to front and return existing window
+      existingWin.style.zIndex = ++windowZIndex;
+      return existingWin;
+    } else {
+      // Window was removed from DOM, clean up reference
+      singletonWindows.delete(singletonId);
+    }
+  }
   
   const win = document.createElement('div');
   win.className = 'addon-window';
@@ -223,7 +244,7 @@ export function createAppWindow(title, contentRenderer, options = {}) {
 
   win.innerHTML = `
     <div class="addon-window-header">
-      <span class="addon-window-title">${title}</span>
+      <span class="addon-window-title">${escapeHtml(title)}</span>
       <button class="addon-window-close" title="Close">x</button>
     </div>
     <div class="addon-window-content"></div>
@@ -231,6 +252,11 @@ export function createAppWindow(title, contentRenderer, options = {}) {
   `;
 
   document.body.appendChild(win);
+  
+  // Track singleton windows
+  if (singletonId) {
+    singletonWindows.set(singletonId, win);
+  }
 
   const header = win.querySelector('.addon-window-header');
   const closeBtn = win.querySelector('.addon-window-close');
@@ -239,6 +265,9 @@ export function createAppWindow(title, contentRenderer, options = {}) {
 
   // Close
   closeBtn.addEventListener('click', () => {
+    if (singletonId) {
+      singletonWindows.delete(singletonId);
+    }
     win.remove();
   });
 
