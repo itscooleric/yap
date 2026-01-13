@@ -28,7 +28,7 @@ export async function requestMicPermission() {
     await enumerateDevices();
     return true;
   } catch (err) {
-    console.warn('Microphone permission denied:', err);
+    console.warn('Failed to request microphone permission:', err);
     permissionGranted = false;
     return false;
   }

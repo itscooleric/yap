@@ -690,8 +690,17 @@ async function startRecording() {
 
   } catch (err) {
     console.error('Recording error:', err);
-    setStatus('error', 'Microphone access denied');
-    showMessage('Error: Could not access microphone. Please allow microphone access.', 'error');
+    // Handle different error types with appropriate messages
+    if (err.name === 'NotAllowedError') {
+      setStatus('error', 'Permission denied');
+      showMessage('Error: Microphone permission denied. Please allow access in browser settings.', 'error');
+    } else if (err.name === 'NotFoundError') {
+      setStatus('error', 'No microphone found');
+      showMessage('Error: No microphone found. Please connect a microphone and try again.', 'error');
+    } else {
+      setStatus('error', 'Microphone access denied');
+      showMessage('Error: Could not access microphone. Please allow microphone access.', 'error');
+    }
   }
 }
 
