@@ -98,3 +98,32 @@ window.moduleName = moduleName;
 - Use `@pytest.mark.integration` decorator for tests needing live services
 - TTS tests accept `TTS_BASE_URL` env var to point at proxy or direct service
 - Test files follow `test_*.py` naming in [tests/](tests/) directory
+
+## Specialized Prompts
+
+Additional prompts for specific tasks are in [.github/prompts/](.github/prompts/):
+
+| Prompt | Use For |
+|--------|---------|
+| `chat-feature-agent.md` | Implementing the LLM chat feature end-to-end |
+| `new-tab.md` | Adding new tabs to the UI (includes boilerplate) |
+| `new-service.md` | Creating new backend microservices |
+| `code-review.md` | Reviewing PRs against Yap conventions |
+
+### How to Use Prompts
+
+**In VS Code Copilot Chat:**
+1. Click the attachment icon or press `Ctrl+/`
+2. Select "Attach File" → choose a prompt from `.github/prompts/`
+3. Ask your question - Copilot will follow the prompt's instructions
+
+**In Agent Mode (Copilot Edits):**
+1. Open Copilot Edits panel (`Ctrl+Shift+I`)
+2. Reference a prompt: "Follow the pattern in .github/prompts/new-tab.md to add a chat tab"
+3. The agent will use both this file and the referenced prompt
+
+**Combining Prompts:**
+Attach multiple prompts for complex tasks. Example for chat feature:
+- Attach `chat-feature-agent.md` (overall guidance)
+- Attach `new-tab.md` (UI structure)
+- Ask: "Create the chat tab following these patterns"
