@@ -4,10 +4,8 @@
 # To make this agent available, merge this file into the default repository branch.
 # For format details, see: https://gh.io/customagents/config
 
-name:yap-chat-feature-agent
-description:  Specialized agent for implementing the chat feature in Yap, a local speech recognition 
-  and text-to-speech application. This agent understands Yap's architecture and can work 
-  across the full stack to integrate LLM-powered chat functionality. 
+name: yap-chat-feature-agent
+description:  Specialized agent for implementing the chat feature in Yap, a local speech recognition
 ---
 
 # My Agent
