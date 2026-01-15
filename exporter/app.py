@@ -400,6 +400,9 @@ async def export_sftp_upload(request: SFTPUploadRequest):
             file_path=remote_path
         )
         
+    except HTTPException:
+        # Re-raise HTTPException to preserve status code and detail
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"SFTP error: {str(e)}")
 
