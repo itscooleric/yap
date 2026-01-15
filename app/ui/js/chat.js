@@ -226,25 +226,41 @@ function renderMessageContent(content) {
   if (!chatSettings.markdownEnabled) {
     return escapeHtml(content);
   }
-  
-  // Simple markdown rendering (code blocks and inline code)
+
+  // Escape all content first to avoid XSS
   let html = escapeHtml(content);
-  
+
+  // Extract code blocks and inline code into placeholders so that
+  // later markdown processing (bold/italic) does not affect code.
+  const codeSegments = [];
+
   // Code blocks: ```...```
-  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-  
+  html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
+    const index = codeSegments.length;
+    // `code` is already escaped via escapeHtml above.
+    codeSegments.push(`<pre><code>${code}</code></pre>`);
+    return `__CODE_BLOCK_${index}__`;
+  });
+
   // Inline code: `...`
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  
+  html = html.replace(/`([^`]+)`/g, (_, code) => {
+    const index = codeSegments.length;
+    // `code` is already escaped via escapeHtml above.
+    codeSegments.push(`<code>${code}</code>`);
+    return `__CODE_BLOCK_${index}__`;
+  });
+
   // Bold: **...**
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  
+
   // Italic: *...*
   html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  
+
   // Line breaks
   html = html.replace(/\n/g, '<br>');
-  
+
+  // Restore code segments
+  html = html.replace(/__CODE_BLOCK_(\d+)__/g, (_, i) => codeSegments[Number(i)] || '');
   return html;
 }
 
