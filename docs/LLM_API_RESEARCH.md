@@ -11,7 +11,7 @@ This document evaluates LLM (Large Language Model) API providers for integration
 - **MVP Provider**: Ollama (6-8 days implementation)
 - **Alternative**: OpenWebUI (10-12 days, +50% effort, includes RAG/web search)
 - **Best Approach**: Hybrid - Ship Ollama MVP, add OpenWebUI as optional backend later
-- **Architecture**: Simple proxy service that forwards chat requests to provider
+- **Architecture**: Direct Ollama integration via OpenAI-compatible `/v1/chat/completions` endpoint (Ollama 0.1.0+), or optional thin proxy for CORS/error handling
 
 ---
 
@@ -37,6 +37,7 @@ We evaluated each provider based on:
 #### Pros
 - ✅ **Already integrated**: Yap has existing Ollama integration in add-ons
 - ✅ **Simple REST API**: Standard `/api/generate` and `/api/chat` endpoints
+- ✅ **OpenAI-compatible API**: Native `/v1/chat/completions` endpoint (Ollama 0.1.0+)
 - ✅ **100% local and private**: All processing happens on-device
 - ✅ **Zero cost**: Free, open-source, self-hosted
 - ✅ **Easy setup**: Single binary installation, works on macOS, Linux, Windows
@@ -53,7 +54,17 @@ We evaluated each provider based on:
 
 #### API Format
 ```bash
-# Chat endpoint
+# OpenAI-compatible endpoint (Ollama 0.1.0+, recommended)
+POST http://localhost:11434/v1/chat/completions
+{
+  "model": "llama3.2",
+  "messages": [
+    { "role": "user", "content": "Hello!" }
+  ],
+  "stream": false
+}
+
+# Native Ollama chat endpoint
 POST http://localhost:11434/api/chat
 {
   "model": "llama3.2",
@@ -63,7 +74,7 @@ POST http://localhost:11434/api/chat
   "stream": false
 }
 
-# Generate endpoint (simpler)
+# Generate endpoint (simpler, native format)
 POST http://localhost:11434/api/generate
 {
   "model": "llama3.2",
@@ -71,6 +82,8 @@ POST http://localhost:11434/api/generate
   "stream": false
 }
 ```
+
+> **Note**: Ollama 0.1.0+ exposes a native OpenAI-compatible `/v1/chat/completions` endpoint, eliminating the need for a compatibility proxy. The native `/api/chat` endpoint is also available and used by existing Yap integrations.
 
 #### Integration Effort
 **Low** - Existing patterns in `add-ons/ollama-summarize/` can be adapted.
@@ -424,7 +437,16 @@ ollama pull llama3.2
 # Test Ollama health
 curl http://localhost:11434/api/tags
 
-# Test chat endpoint
+# Test OpenAI-compatible endpoint (Ollama 0.1.0+)
+curl http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llama3.2",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "stream": false
+  }'
+
+# Test native chat endpoint
 curl http://localhost:11434/api/chat -d '{
   "model": "llama3.2",
   "messages": [{"role": "user", "content": "Hello!"}],
@@ -432,7 +454,31 @@ curl http://localhost:11434/api/chat -d '{
 }'
 ```
 
-#### 4. Configure Yap LLM Proxy Service
+#### 4. Configure Yap LLM Proxy Service (Optional)
+
+> **Note**: While Ollama 0.1.0+ provides native OpenAI-compatible endpoints, a thin proxy service can still be useful for:
+> - CORS handling for browser-based applications
+> - Consistent error formatting across providers
+> - Request/response transformation
+> - Future multi-provider support
+
+**Option A: Direct Ollama Integration (Simpler)**
+
+Use Ollama's native OpenAI-compatible endpoint directly:
+```javascript
+// Frontend can call Ollama's /v1/chat/completions directly
+const response = await fetch('http://localhost:11434/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'llama3.2',
+    messages: [{ role: 'user', content: 'Hello!' }],
+    stream: false
+  })
+});
+```
+
+**Option B: Custom Proxy Service (More Control)**
 
 Create `llm-proxy/app.py`:
 
@@ -456,6 +502,7 @@ app.add_middleware(
 # Configuration
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "llama3.2")
+USE_OPENAI_ENDPOINT = os.getenv("USE_OPENAI_ENDPOINT", "true").lower() == "true"
 
 class ChatRequest(BaseModel):
     message: str
@@ -468,7 +515,7 @@ class ChatResponse(BaseModel):
 
 @app.post("/llm/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """Forward chat request to Ollama"""
+    """Forward chat request to Ollama (using OpenAI-compatible or native endpoint)"""
     
     # Build messages array for Ollama
     messages = []
@@ -479,22 +526,40 @@ async def chat(request: ChatRequest):
         })
     messages.append({"role": "user", "content": request.message})
     
-    # Call Ollama
+    # Call Ollama using OpenAI-compatible endpoint (recommended) or native endpoint
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
-            response = await client.post(
-                f"{OLLAMA_URL}/api/chat",
-                json={
+            if USE_OPENAI_ENDPOINT:
+                # Use OpenAI-compatible endpoint (Ollama 0.1.0+)
+                endpoint = f"{OLLAMA_URL}/v1/chat/completions"
+                payload = {
                     "model": request.model,
                     "messages": messages,
                     "stream": False
                 }
-            )
+            else:
+                # Use native Ollama endpoint
+                endpoint = f"{OLLAMA_URL}/api/chat"
+                payload = {
+                    "model": request.model,
+                    "messages": messages,
+                    "stream": False
+                }
+            
+            response = await client.post(endpoint, json=payload)
             response.raise_for_status()
             data = response.json()
             
+            # Extract response based on endpoint format
+            if USE_OPENAI_ENDPOINT:
+                # OpenAI format: choices[0].message.content
+                content = data["choices"][0]["message"]["content"]
+            else:
+                # Native Ollama format: message.content
+                content = data["message"]["content"]
+            
             return ChatResponse(
-                response=data["message"]["content"],
+                response=content,
                 model=request.model
             )
             
@@ -510,9 +575,9 @@ async def health():
     return {"status": "ok", "provider": "ollama"}
 ```
 
-#### 5. Add to Docker Compose
+#### 5. Add to Docker Compose (Optional Proxy)
 
-Add to `app/docker-compose.yml`:
+Add to `app/docker-compose.yml` if using custom proxy:
 
 ```yaml
 services:
@@ -521,6 +586,7 @@ services:
     environment:
       - OLLAMA_URL=http://host.docker.internal:11434
       - DEFAULT_MODEL=llama3.2
+      - USE_OPENAI_ENDPOINT=true  # Use Ollama's native OpenAI-compatible endpoint
     labels:
       caddy: ${APP_DOMAIN}
       caddy.route: /llm/*
@@ -528,6 +594,8 @@ services:
     networks:
       - caddy
 ```
+
+**Note**: For direct integration without a proxy, you can configure the frontend to call Ollama's OpenAI-compatible endpoint (`http://ollama:11434/v1/chat/completions`) directly, provided CORS is handled appropriately.
 
 #### 6. Frontend Integration
 
@@ -763,7 +831,19 @@ Frontend displays user-friendly toast with setup link.
 
 ## Conclusion
 
-**Ollama is the clear choice for Yap's MVP chat feature** due to its simplicity, privacy, existing integration patterns, and alignment with Yap's local-first philosophy. The recommended architecture uses a thin proxy service to handle CORS and error formatting while Ollama does the heavy lifting of LLM inference.
+**Ollama is the clear choice for Yap's MVP chat feature** due to its simplicity, privacy, existing integration patterns, and alignment with Yap's local-first philosophy. 
+
+### Key Advantages
+
+1. **Native OpenAI Compatibility**: Ollama 0.1.0+ exposes a native OpenAI-compatible `/v1/chat/completions` endpoint, eliminating the need for a compatibility proxy layer.
+
+2. **Flexible Integration Options**:
+   - **Direct Integration**: Use Ollama's OpenAI-compatible endpoint directly from the frontend
+   - **Optional Proxy**: Add a thin proxy service for CORS handling, error formatting, and future multi-provider support
+
+3. **Simple Architecture**: The recommended architecture uses either:
+   - Direct Ollama integration via `/v1/chat/completions` (simplest)
+   - Optional thin proxy service for enhanced error handling and CORS (more control)
 
 Future phases can add multi-provider support (LiteLLM) and advanced features (OpenWebUI) without requiring significant architectural changes, making this a future-proof foundation.
 
