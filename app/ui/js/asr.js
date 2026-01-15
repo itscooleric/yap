@@ -212,7 +212,7 @@ function formatTranscript(text) {
   return result;
 }
 
-// Get LLM settings (used by exports)
+// Get LLM settings (exposed as public API)
 function getLLMSettings() {
   return { ...llmSettings };
 }
@@ -1205,6 +1205,8 @@ function openSettingsPanel() {
     
     if (llmApiKeyInput) {
       llmApiKeyInput.addEventListener('blur', function() {
+        // API key is optional and doesn't require validation
+        // (empty string is valid for local models like Ollama)
         llmSettings.apiKey = this.value.trim();
         saveLLMSettings();
         showMessage('LLM settings saved', 'success');

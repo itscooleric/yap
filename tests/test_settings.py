@@ -215,17 +215,17 @@ class TestConfigurationDefaults:
         assert default_url.startswith('http://'), "Should use HTTP protocol"
         assert 'localhost' in default_url, "Should default to localhost for security"
 
-    def test_ollama_default_config(self):
-        """Ollama should have sensible defaults"""
-        default_ollama_url = 'http://localhost:11434/v1/chat/completions'
-        default_ollama_model = 'llama3'
+    def test_llm_default_config(self):
+        """LLM provider should have sensible defaults"""
+        default_llm_url = 'http://localhost:11434/v1/chat/completions'
+        default_llm_model = 'llama3'
         default_temperature = 0.7
         default_max_tokens = 2048
         
-        assert default_ollama_url.startswith('http://'), "Should use HTTP protocol"
-        assert 'localhost' in default_ollama_url, "Should default to localhost"
-        assert isinstance(default_ollama_model, str), "Model should be a string"
-        assert len(default_ollama_model) > 0, "Model should not be empty"
+        assert default_llm_url.startswith('http://'), "Should use HTTP protocol"
+        assert 'localhost' in default_llm_url, "Should default to localhost"
+        assert isinstance(default_llm_model, str), "Model should be a string"
+        assert len(default_llm_model) > 0, "Model should not be empty"
         assert 0 <= default_temperature <= 2, "Temperature should be between 0 and 2"
         assert default_max_tokens > 0, "Max tokens should be positive"
 
