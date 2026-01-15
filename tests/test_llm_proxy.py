@@ -112,9 +112,11 @@ class TestLLMProxyIntegration:
 
     def test_chat_with_mock_provider(self):
         """Test chat with mocked LLM provider response"""
-        # This test would require setting up a mock LLM provider
-        # or using environment variables to point to a test provider
-        pass
+        pytest.skip(
+            "Requires mock LLM provider infrastructure. "
+            "To implement: set up a mock HTTP server that responds to OpenAI-compatible "
+            "/v1/chat/completions endpoint, or use environment variable to point to a test provider"
+        )
 
 
 class TestLLMProxyConfiguration:
