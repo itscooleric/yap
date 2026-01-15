@@ -215,7 +215,7 @@ async def chat(request: ChatRequest):
                 try:
                     error_detail = response.json()
                     error_msg = f"{error_msg}: {error_detail.get('error', {}).get('message', response.text[:200])}"
-                except:
+                except (ValueError, json.JSONDecodeError):
                     error_msg = f"{error_msg}: {response.text[:200]}"
                 
                 log_request(request_data, error=error_msg, duration=duration)
