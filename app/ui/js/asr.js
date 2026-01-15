@@ -212,6 +212,11 @@ function formatTranscript(text) {
   return result;
 }
 
+// Get LLM settings (used by exports)
+function getLLMSettings() {
+  return { ...llmSettings };
+}
+
 // Get combined transcript text based on settings
 function getCombinedTranscript(withSeparators = null) {
   const useSeparators = withSeparators !== null ? withSeparators : transcriptSettings.showSeparators;
@@ -1671,9 +1676,9 @@ export async function init(container) {
     },
     getClips: () => clips.slice(),
     openSettings: openSettingsPanel,
-    getLLMSettings: () => ({ ...llmSettings })
+    getLLMSettings
   };
 }
 
 export { openSettingsPanel };
-export const asr = { init, isRecording, openSettingsPanel, getLLMSettings: () => ({ ...llmSettings }) };
+export const asr = { init, isRecording, openSettingsPanel, getLLMSettings };
