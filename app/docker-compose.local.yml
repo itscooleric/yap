@@ -32,6 +32,18 @@ services:
     networks:
       - default
 
+  yap-metrics:
+    labels: []
+    networks:
+      - default
+
+  yap-llm-proxy:
+    ports:
+      - "8092:8092"
+    labels: []
+    networks:
+      - default
+
 networks:
   caddy:
     external: false
