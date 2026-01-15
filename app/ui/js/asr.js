@@ -1200,7 +1200,7 @@ function openSettingsPanel() {
     
     if (llmApiKeyInput) {
       llmApiKeyInput.addEventListener('blur', function() {
-        llmSettings.apiKey = this.value;
+        llmSettings.apiKey = this.value.trim();
         saveLLMSettings();
         showMessage('LLM settings saved', 'success');
       });
@@ -1208,20 +1208,30 @@ function openSettingsPanel() {
     
     if (llmTemperatureInput) {
       llmTemperatureInput.addEventListener('blur', function() {
-        llmSettings.temperature = parseFloat(this.value);
-        if (validateLLMSettings(container)) {
-          saveLLMSettings();
-          showMessage('LLM settings saved', 'success');
+        const temp = parseFloat(this.value);
+        if (!isNaN(temp)) {
+          llmSettings.temperature = temp;
+          if (validateLLMSettings(container)) {
+            saveLLMSettings();
+            showMessage('LLM settings saved', 'success');
+          }
+        } else {
+          validateLLMSettings(container);
         }
       });
     }
     
     if (llmMaxTokensInput) {
       llmMaxTokensInput.addEventListener('blur', function() {
-        llmSettings.maxTokens = parseInt(this.value);
-        if (validateLLMSettings(container)) {
-          saveLLMSettings();
-          showMessage('LLM settings saved', 'success');
+        const tokens = parseInt(this.value);
+        if (!isNaN(tokens)) {
+          llmSettings.maxTokens = tokens;
+          if (validateLLMSettings(container)) {
+            saveLLMSettings();
+            showMessage('LLM settings saved', 'success');
+          }
+        } else {
+          validateLLMSettings(container);
         }
       });
     }
