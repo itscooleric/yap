@@ -1,6 +1,7 @@
 [tool.pytest.ini_options]
 markers = [
     "integration: marks tests as integration tests (require running services)",
+    "unit: marks tests as unit tests (no services required, may use mocks)",
 ]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
