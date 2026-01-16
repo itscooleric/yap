@@ -902,6 +902,11 @@ function openSettingsPanel() {
     const enableToolbarChecked = mobileSettings.enableMobileToolbar === null ? '' : (mobileSettings.enableMobileToolbar ? 'checked' : '');
     const toolbarDisabled = mobileSettings.enableMobileToolbar === null;
     
+    // Load chat settings
+    const chatSystemPrompt = util.storage.get('settings.chat.systemPrompt', 'You are a helpful assistant.');
+    const chatAutoSend = util.storage.get('settings.chat.autoSend', false);
+    const chatMarkdownEnabled = util.storage.get('settings.chat.markdownEnabled', true);
+    
     // Build mic options HTML
     let micOptionsHtml = '<option value="">Default microphone</option>';
     if (hasLabels && devices.length > 0) {
@@ -1009,6 +1014,28 @@ function openSettingsPanel() {
         <label style="margin-bottom: 0.5rem; font-size: 0.8rem;">Max Tokens</label>
         <input type="number" id="llmMaxTokens" class="formatting-select" style="width: 100%; font-size: 0.8rem;" value="${llmSettings.maxTokens}" min="1" step="1">
         <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Maximum response length (tokens)</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="margin-bottom: 0.5rem; font-size: 0.8rem;">System Prompt</label>
+        <textarea id="chatSystemPrompt" class="transcript-area" style="min-height: 80px; width: 100%; font-size: 0.8rem;" placeholder="You are a helpful assistant.">${chatSystemPrompt}</textarea>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Instructions for the LLM's behavior</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch ${chatAutoSend ? 'active' : ''}" id="settingChatAutoSend"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">Auto-send after transcription</span>
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Automatically send to LLM after voice transcription</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch ${chatMarkdownEnabled ? 'active' : ''}" id="settingChatMarkdown"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">Render markdown in responses</span>
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Display formatted code blocks and emphasis</span>
       </div>
       
       <div class="settings-section-title">Behavior</div>
@@ -1240,6 +1267,35 @@ function openSettingsPanel() {
         } else {
           validateLLMSettings(container);
         }
+      });
+    }
+    
+    // Event handlers - Chat settings
+    const chatSystemPromptInput = container.querySelector('#chatSystemPrompt');
+    if (chatSystemPromptInput) {
+      chatSystemPromptInput.addEventListener('blur', function() {
+        util.storage.set('settings.chat.systemPrompt', this.value.trim());
+        showMessage('Chat settings saved', 'success');
+      });
+    }
+    
+    const settingChatAutoSend = container.querySelector('#settingChatAutoSend');
+    if (settingChatAutoSend) {
+      settingChatAutoSend.addEventListener('click', function() {
+        const newValue = !util.storage.get('settings.chat.autoSend', false);
+        util.storage.set('settings.chat.autoSend', newValue);
+        this.classList.toggle('active', newValue);
+        showMessage('Chat settings saved', 'success');
+      });
+    }
+    
+    const settingChatMarkdown = container.querySelector('#settingChatMarkdown');
+    if (settingChatMarkdown) {
+      settingChatMarkdown.addEventListener('click', function() {
+        const newValue = !util.storage.get('settings.chat.markdownEnabled', true);
+        util.storage.set('settings.chat.markdownEnabled', newValue);
+        this.classList.toggle('active', newValue);
+        showMessage('Chat settings saved', 'success');
       });
     }
     

@@ -12,6 +12,7 @@ import { metrics } from './metrics.js';
 let activeTab = 'asr';
 let asrEnabled = true;
 let ttsEnabled = true;
+let chatEnabled = true;
 
 // Tab elements
 const tabs = {
