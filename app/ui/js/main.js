@@ -3,6 +3,7 @@
 
 import { asr } from './asr.js';
 import { tts } from './tts.js';
+import { chat } from './chat.js';
 import * as data from './data.js';
 import { initAddonPanel } from './addons.js';
 import { metrics } from './metrics.js';
@@ -11,11 +12,13 @@ import { metrics } from './metrics.js';
 let activeTab = 'asr';
 let asrEnabled = true;
 let ttsEnabled = true;
+let chatEnabled = true;
 
 // Tab elements
 const tabs = {
   asr: null,
   tts: null,
+  chat: null,
   data: null
 };
 
@@ -163,7 +166,7 @@ function setupRecordingIndicator() {
 // Handle hash-based routing for deep links
 function handleHashRoute() {
   const hash = window.location.hash.replace('#', '');
-  if (hash === 'asr' || hash === 'tts' || hash === 'data') {
+  if (hash === 'asr' || hash === 'tts' || hash === 'chat' || hash === 'data') {
     switchTab(hash);
   }
 }
@@ -198,6 +201,7 @@ async function init() {
   // Cache tab elements
   tabs.asr = document.getElementById('asr-tab');
   tabs.tts = document.getElementById('tts-tab');
+  tabs.chat = document.getElementById('chat-tab');
   tabs.data = document.getElementById('data-tab');
   
   // Initialize ASR
@@ -208,6 +212,11 @@ async function init() {
   // Initialize TTS
   if (tabs.tts) {
     tts.init(tabs.tts);
+  }
+  
+  // Initialize Chat
+  if (tabs.chat) {
+    chat.init();
   }
   
   // Initialize Data/Metrics tab

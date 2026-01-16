@@ -13,6 +13,9 @@ import os
 # Determine base URL from environment or use default for local testing
 LLM_BASE_URL = os.environ.get('LLM_BASE_URL', 'http://localhost:8092')
 
+# Expected service name (matches main.py)
+EXPECTED_SERVICE_NAME = 'yap-llm-proxy'
+
 
 class TestLLMProxyHealth:
     """Test LLM proxy health endpoint"""
@@ -29,9 +32,28 @@ class TestLLMProxyHealth:
         assert 'status' in data
         assert data['status'] == 'ok'
         assert 'service' in data
-        assert data['service'] == 'llm-proxy'
+        assert data['service'] == EXPECTED_SERVICE_NAME
         assert 'provider_configured' in data
         assert 'model' in data
+        assert 'version' in data
+        assert 'timestamp' in data
+
+
+class TestLLMProxyIndex:
+    """Test LLM proxy index endpoint"""
+    
+    def test_index_endpoint(self):
+        """Test index endpoint returns API info"""
+        response = requests.get(f'{LLM_BASE_URL}/')
+        assert response.status_code == 200
+        data = response.json()
+        assert 'name' in data
+        assert data['name'] == EXPECTED_SERVICE_NAME
+        assert 'version' in data
+        assert 'endpoints' in data
+        assert '/' in data['endpoints']
+        assert '/health' in data['endpoints']
+        assert '/chat' in data['endpoints']
 
 
 class TestLLMProxyChat:
@@ -65,10 +87,21 @@ class TestLLMProxyChat:
 
     def test_chat_validates_message_structure(self):
         """Chat should validate message structure"""
-        # Test with invalid message structure
+        # Test with invalid message structure (missing required fields)
         payload = {
             "messages": [
                 {"invalid": "field"}
+            ]
+        }
+        response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
+        assert response.status_code == 422  # Validation error
+
+    def test_chat_validates_message_role(self):
+        """Chat should validate message role"""
+        # Test with invalid role
+        payload = {
+            "messages": [
+                {"role": "invalid_role", "content": "Hello"}
             ]
         }
         response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
@@ -100,10 +133,33 @@ class TestLLMProxyChat:
         }
         response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
         
-        # Should return 400 or 503 (if provider not configured)
-        if response.status_code == 400:
-            data = response.json()
-            assert 'streaming' in data['detail'].lower() or 'not' in data['detail'].lower() and 'supported' in data['detail'].lower()
+        # Should return 422 validation error
+        assert response.status_code == 422
+        data = response.json()
+        assert 'detail' in data
+
+    def test_chat_with_system_message(self):
+        """Chat should accept system messages"""
+        payload = {
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Hello"}
+            ]
+        }
+        response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
+        assert response.status_code in [200, 502, 503, 504]
+
+    def test_chat_with_conversation_history(self):
+        """Chat should accept multi-turn conversations"""
+        payload = {
+            "messages": [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "Hi! How can I help you?"},
+                {"role": "user", "content": "Tell me a joke"}
+            ]
+        }
+        response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
+        assert response.status_code in [200, 502, 503, 504]
 
 
 @pytest.mark.integration
@@ -117,21 +173,6 @@ class TestLLMProxyIntegration:
             "To implement: set up a mock HTTP server that responds to OpenAI-compatible "
             "/v1/chat/completions endpoint, or use environment variable to point to a test provider"
         )
-
-
-class TestLLMProxyConfiguration:
-    """Test configuration and environment variable handling"""
-
-    def test_index_endpoint(self):
-        """Test index endpoint returns API info"""
-        response = requests.get(f'{LLM_BASE_URL}/')
-        assert response.status_code == 200
-        data = response.json()
-        assert 'name' in data
-        assert 'version' in data
-        assert 'endpoints' in data
-        assert '/health' in data['endpoints']
-        assert '/chat' in data['endpoints']
 
 
 class TestLLMProxyErrorHandling:
@@ -148,7 +189,10 @@ class TestLLMProxyErrorHandling:
 
     def test_empty_request_body(self):
         """Test handling of empty request body"""
-        response = requests.post(f'{LLM_BASE_URL}/chat')
+        response = requests.post(
+            f'{LLM_BASE_URL}/chat',
+            headers={'Content-Type': 'application/json'}
+        )
         assert response.status_code == 422
 
     def test_temperature_validation(self):
@@ -162,8 +206,13 @@ class TestLLMProxyErrorHandling:
         # Should not fail validation
         assert response.status_code != 422 or 'temperature' not in response.text.lower()
 
-        # Test temperature outside valid range
-        payload["temperature"] = 3.0  # > 2.0
+        # Test temperature outside valid range (> 2.0)
+        payload["temperature"] = 3.0
+        response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
+        assert response.status_code == 422
+
+        # Test negative temperature
+        payload["temperature"] = -0.5
         response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
         assert response.status_code == 422
 
@@ -181,6 +230,53 @@ class TestLLMProxyErrorHandling:
         payload["max_tokens"] = 0
         response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
         assert response.status_code == 422
+
+        # Test invalid max_tokens (> 8000)
+        payload["max_tokens"] = 10000
+        response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
+        assert response.status_code == 422
+
+    def test_model_parameter(self):
+        """Test model parameter handling"""
+        payload = {
+            "messages": [{"role": "user", "content": "Hello"}],
+            "model": "custom-model"
+        }
+        response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
+        # Should accept custom model name
+        assert response.status_code in [200, 502, 503, 504]
+
+    def test_empty_message_content(self):
+        """Test handling of empty message content"""
+        payload = {
+            "messages": [{"role": "user", "content": ""}]
+        }
+        response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
+        # Should accept empty content (provider may reject it)
+        assert response.status_code in [200, 422, 502, 503, 504]
+
+    def test_very_long_message(self):
+        """Test handling of very long messages"""
+        long_content = "Hello " * 10000  # Very long message
+        payload = {
+            "messages": [{"role": "user", "content": long_content}]
+        }
+        response = requests.post(f'{LLM_BASE_URL}/chat', json=payload)
+        # Should accept long messages (provider may have limits)
+        assert response.status_code in [200, 422, 502, 503, 504]
+
+
+class TestLLMProxyErrorResponses:
+    """Test error response format"""
+    
+    def test_error_response_structure(self):
+        """Test that error responses have expected structure"""
+        # Trigger a validation error
+        response = requests.post(f'{LLM_BASE_URL}/chat', json={})
+        assert response.status_code == 422
+        
+        data = response.json()
+        assert 'detail' in data
 
 
 if __name__ == '__main__':

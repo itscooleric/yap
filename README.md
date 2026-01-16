@@ -38,6 +38,7 @@ Yap provides a unified web application combining ASR (speech-to-text) and TTS (t
 |---------|-------------|---------|
 | **ASR** | Record audio and transcribe to text | OpenAI Whisper |
 | **TTS** | Convert text to natural speech | Piper TTS |
+| **Chat** | Voice/text conversations with LLMs | LLM Proxy Service |
 
 The application runs as Docker containers with a terminal-style dark UI, designed for private LAN use.
 
@@ -47,6 +48,8 @@ Yap uses a **single-domain architecture** where:
 - UI is served at `https://APP_DOMAIN/`
 - ASR API is routed at `https://APP_DOMAIN/asr/*`
 - TTS API is routed at `https://APP_DOMAIN/tts/*`
+- LLM API is routed at `https://APP_DOMAIN/api/llm/*`
+- Metrics API is routed at `https://APP_DOMAIN/api/metrics/*`
 
 This is achieved via Caddy labels (production) or nginx proxy (local mode).
 
@@ -74,6 +77,20 @@ This is achieved via Caddy labels (production) or nginx proxy (local mode).
 - Keyboard shortcut: Ctrl+Enter to synthesize
 
 **See the [User Guide](docs/USER_GUIDE.md) for detailed TTS documentation.**
+
+### Chat Tab
+- **Voice messaging**: Record audio, transcribe, send to LLM
+- **Text messaging**: Type messages directly
+- Multiple LLM provider support (OpenWebUI, Ollama, OpenAI, etc.)
+- Conversation history with message bubbles
+- Audio playback in messages
+- Markdown rendering in LLM responses
+- **Export** conversations to GitLab, GitHub, SFTP, or webhooks
+- Configurable system prompts and temperature
+- Auto-send after transcription (optional)
+- Keyboard shortcut: Ctrl+Enter to send
+
+**See the [Chat Design Documentation](docs/CHAT_DESIGN_README.md) for detailed Chat feature documentation.**
 
 ### Export
 - Export transcripts to **GitLab** or **GitHub** repositories (commit files directly)

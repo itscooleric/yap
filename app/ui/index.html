@@ -21,6 +21,7 @@
         <nav class="nav-tabs">
           <button data-tab="asr" class="active">ASR</button>
           <button data-tab="tts">TTS</button>
+          <button data-tab="chat">Chat</button>
           <button data-tab="data" id="dataTabBtn">Data</button>
           <button id="addonsBtn">Apps</button>
           <button id="settingsBtn" class="settings-btn" title="Settings">
@@ -189,6 +190,107 @@
         </div>
         <div class="read-along-content" id="readAlongContent">
           <!-- Chunks will be rendered here -->
+        </div>
+      </div>
+
+      <!-- Chat Tab -->
+      <div id="chat-tab" class="tab-content">
+        <!-- Chat Header -->
+        <div class="panel chat-header">
+          <div class="panel-header">
+            Chat
+            <span class="message-count-badge" id="chatMessageCount">0</span>
+          </div>
+          <div class="chat-header-actions">
+            <button id="chatClearBtn" class="small danger">Clear Chat</button>
+            <button id="chatExportBtn" class="small">Export</button>
+          </div>
+        </div>
+
+        <!-- Message List -->
+        <div class="panel">
+          <div class="panel-header">Messages</div>
+          <div class="chat-messages" id="chatMessagesList">
+            <div class="chat-empty-state">
+              <div class="chat-empty-icon">💬</div>
+              <div class="chat-empty-title">No messages yet</div>
+              <div class="chat-empty-subtitle">
+                Record audio or type a message to start<br>
+                a conversation with the LLM
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- New Message Panel -->
+        <div class="panel chat-input-panel">
+          <div class="panel-header">New Message</div>
+          
+          <!-- Status bar -->
+          <div class="status-bar">
+            <div class="status">
+              <span class="status-dot" id="chatStatusDot"></span>
+              <span id="chatStatusText">Idle</span>
+            </div>
+            <div class="timer" id="chatTimer">00:00</div>
+          </div>
+          
+          <!-- Mode toggle -->
+          <div class="chat-input-mode-toggle">
+            <button class="mode-toggle-btn" data-mode="audio" id="chatModeAudio">
+              🎤 Audio
+            </button>
+            <button class="mode-toggle-btn active" data-mode="text" id="chatModeText">
+              ⌨ Text
+            </button>
+          </div>
+          
+          <!-- Audio mode content -->
+          <div class="chat-audio-mode" id="chatAudioMode" style="display: none;">
+            <!-- Waveform (during recording) -->
+            <div class="waveform-container" style="display: none;">
+              <canvas id="chatWaveform"></canvas>
+            </div>
+            
+            <!-- Audio preview (after recording) -->
+            <div class="chat-audio-preview" id="chatAudioPreview" style="display: none;">
+              <div class="audio-info">
+                <span class="audio-icon">🔊</span>
+                <span class="audio-filename" id="chatAudioFilename">-</span>
+                <span class="audio-duration" id="chatAudioDuration">-</span>
+              </div>
+              <audio id="chatAudioPlayer" controls></audio>
+              
+              <!-- Transcript -->
+              <div class="chat-transcript-box">
+                <textarea id="chatTranscript" class="transcript-area" 
+                          placeholder="Transcript will appear here..."></textarea>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Text mode content -->
+          <div class="chat-text-mode" id="chatTextMode">
+            <textarea id="chatTextInput" class="text-input" 
+                      placeholder="Type your message here..."></textarea>
+            <div class="char-count">
+              <span id="chatCharCount">0</span> / 10000 characters
+            </div>
+          </div>
+          
+          <!-- Action buttons -->
+          <div class="controls chat-input-controls">
+            <!-- Audio mode buttons -->
+            <div class="audio-controls" id="chatAudioControls" style="display: none;">
+              <button id="chatRecordBtn" class="primary">🎤 Record</button>
+              <button id="chatTranscribeBtn" disabled>Transcribe</button>
+              <button id="chatRerecordBtn" disabled>Re-record</button>
+            </div>
+            
+            <!-- Common buttons -->
+            <button id="chatSendBtn" class="primary" disabled>🚀 Send to LLM</button>
+            <button id="chatClearInputBtn">Clear</button>
+          </div>
         </div>
       </div>
 
