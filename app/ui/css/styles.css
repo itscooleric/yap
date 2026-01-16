@@ -2195,3 +2195,237 @@ html, body {
   accent-color: var(--accent);
   cursor: pointer;
 }
+
+/* ====================================
+   Chat Tab Styles
+   ==================================== */
+
+/* Chat messages container */
+.chat-messages-container {
+  height: 400px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) var(--bg-secondary);
+}
+
+.chat-messages-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.chat-messages-container::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+.chat-messages-container::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-dim);
+}
+
+/* No messages placeholder */
+.no-messages {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2rem;
+  font-size: 0.9rem;
+}
+
+/* Chat message bubble */
+.chat-message {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.chat-message:hover {
+  border-color: var(--border-light);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chat-message.selected {
+  border-color: var(--accent-secondary);
+  background: rgba(0, 255, 249, 0.08);
+  box-shadow: 0 0 8px rgba(0, 255, 249, 0.15);
+}
+
+/* User message */
+.user-message {
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--accent-secondary);
+  margin-left: 1rem;
+}
+
+/* Assistant message */
+.assistant-message {
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--accent-purple);
+  margin-right: 1rem;
+}
+
+/* Message header */
+.msg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.msg-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.user-message .msg-label {
+  color: var(--accent-secondary);
+}
+
+.assistant-message .msg-label {
+  color: var(--accent-purple);
+}
+
+.msg-timestamp {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+/* Message content */
+.msg-content {
+  color: var(--text-primary);
+  line-height: 1.5;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}
+
+/* Message actions */
+.msg-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chat-message:hover .msg-actions {
+  opacity: 1;
+}
+
+.msg-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.msg-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.msg-btn.msg-select {
+  font-weight: bold;
+}
+
+.msg-btn.msg-delete:hover {
+  background: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+
+/* Chat selection controls */
+.chat-selection-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  justify-content: center;
+}
+
+.chat-selection-controls button {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+}
+
+/* Chat text input */
+#chatTextInput {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+#chatTextInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+#chatTextInput::placeholder {
+  color: var(--text-muted);
+}
+
+/* Chat settings panel */
+.chat-settings-panel label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.chat-settings-panel input[type="checkbox"] {
+  margin-right: 0.5rem;
+  accent-color: var(--accent);
+}
+
+/* Mobile responsiveness for chat */
+@media (max-width: 900px) {
+  .chat-messages-container {
+    height: 300px;
+  }
+  
+  .chat-message {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  
+  .user-message {
+    margin-left: 0.5rem;
+  }
+  
+  .assistant-message {
+    margin-right: 0.5rem;
+  }
+  
+  .msg-actions {
+    opacity: 1; /* Always visible on mobile */
+  }
+}

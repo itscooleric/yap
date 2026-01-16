@@ -21,6 +21,7 @@
         <nav class="nav-tabs">
           <button data-tab="asr" class="active">ASR</button>
           <button data-tab="tts">TTS</button>
+          <button data-tab="chat">Chat</button>
           <button data-tab="data" id="dataTabBtn">Data</button>
           <button id="addonsBtn">Apps</button>
           <button id="settingsBtn" class="settings-btn" title="Settings">
@@ -189,6 +190,49 @@
         </div>
         <div class="read-along-content" id="readAlongContent">
           <!-- Chunks will be rendered here -->
+        </div>
+      </div>
+
+      <!-- Chat Tab -->
+      <div id="chat-tab" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">Chat Conversation</div>
+          
+          <div class="status-bar">
+            <div class="status">
+              <span class="status-dot" id="chatStatusDot"></span>
+              <span id="chatStatusText">Ready</span>
+            </div>
+          </div>
+          
+          <div class="chat-messages-container" id="chatMessagesContainer">
+            <div class="no-messages">No messages yet. Record or type to start a conversation.</div>
+          </div>
+          
+          <div class="chat-selection-controls">
+            <button id="chatSelectAllBtn" class="small">Select All</button>
+            <button id="chatClearSelectBtn" class="small">Clear Selection</button>
+          </div>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-header">Send Message</div>
+          
+          <div class="form-group">
+            <textarea id="chatTextInput" class="text-input" placeholder="Type your message here..." rows="4"></textarea>
+          </div>
+          
+          <div class="controls">
+            <button id="chatSendBtn" class="primary" disabled>Send</button>
+            <button id="chatRecordBtn" class="secondary">Record</button>
+          </div>
+          
+          <div class="output-controls">
+            <button id="chatCopyBtn" disabled title="Copy entire conversation">Copy All</button>
+            <button id="chatExportBtn" disabled title="Export to GitLab/GitHub">Export</button>
+            <button id="chatClearBtn" disabled title="Clear conversation">Clear</button>
+            <button id="chatSettingsBtn" class="small" title="Chat settings">⚙ Settings</button>
+          </div>
         </div>
       </div>
 
