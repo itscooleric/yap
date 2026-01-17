@@ -17,7 +17,7 @@ Local LAN web tools for speech-to-text (ASR) and text-to-speech (TTS).
 
 ## Quick Navigation
 
-**Tabs:** [ASR](#asr-tab) | [TTS](#tts-tab) | [Export](#export) | [Data](#data-tab-metrics) | [Settings](#configuration)
+**Tabs:** [ASR](#asr-tab) | [TTS](#tts-tab) | [Chat](#chat-tab) | [Export](#export) | [Data](#data-tab-metrics) | [Settings](#configuration)
 
 **Documentation:**
 - 📖 [User Guide](docs/USER_GUIDE.md) - Complete interface and workflow documentation
@@ -239,7 +239,44 @@ make tts-model-cori  # Shows download commands
 
 **Note**: TTS will start even without models, but will show a clear warning message. See [Troubleshooting](#troubleshooting) for details.
 
-#### 5. Start Services
+#### 5. Install Ollama (Optional - for Chat Tab)
+
+The Chat tab requires Ollama to be installed and running on the host machine:
+
+```bash
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Windows
+# Download from https://ollama.com
+```
+
+Pull a model:
+
+```bash
+ollama pull llama3.2  # Recommended 3B model
+# Or: ollama pull llama3.2:1b  # Faster, 1B model
+# Or: ollama pull gemma3        # Google's Gemma model
+```
+
+Start Ollama (runs automatically on macOS/Windows):
+
+```bash
+ollama serve
+```
+
+Verify it's running:
+
+```bash
+curl http://localhost:11434/api/tags
+```
+
+**Note**: The Chat tab will show clear error messages if Ollama is not running, but the rest of Yap will work normally.
+
+#### 6. Start Services
 
 **Production Mode (with Caddy):**
 
@@ -295,6 +332,9 @@ The original separate ASR and TTS deployments are still available in `asr/` and 
 | `ASR_MODEL` | Whisper model size | `tiny.en` |
 | `ASR_ENGINE` | ASR engine | `faster_whisper` |
 | `ASR_DEVICE` | Compute device | `cuda` |
+| `OLLAMA_URL` | Ollama API URL | `http://host.docker.internal:11434` |
+| `DEFAULT_MODEL` | Default LLM model | `llama3.2` |
+| `REQUEST_TIMEOUT` | LLM request timeout (seconds) | `120` |
 
 For legacy separate deployments:
 | `ASR_DOMAIN` | ASR domain (legacy mode) | `asr.localhost` |
