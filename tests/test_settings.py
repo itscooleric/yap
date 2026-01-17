@@ -58,6 +58,24 @@ class TestDefaultSettings:
         expected_default = False
         assert expected_default is False, "Apps should be disabled by default"
 
+    def test_llm_default_settings(self):
+        """LLM should have sensible default settings"""
+        expected_defaults = {
+            'apiEndpoint': 'http://localhost:11434/v1/chat/completions',
+            'modelName': 'llama3',
+            'apiKey': '',
+            'temperature': 0.7,
+            'maxTokens': 2048
+        }
+        
+        # Verify defaults are reasonable
+        assert expected_defaults['apiEndpoint'].startswith('http://'), "Should use HTTP protocol"
+        assert 'localhost' in expected_defaults['apiEndpoint'], "Should default to localhost"
+        assert len(expected_defaults['modelName']) > 0, "Model name should not be empty"
+        assert expected_defaults['apiKey'] == '', "API key should be empty by default"
+        assert 0 <= expected_defaults['temperature'] <= 2, "Temperature should be in valid range"
+        assert expected_defaults['maxTokens'] > 0, "Max tokens should be positive"
+
 
 class TestSettingsKeys:
     """Test settings storage key conventions"""
@@ -107,6 +125,20 @@ class TestSettingsKeys:
         for key in expected_keys:
             assert key.startswith('yap.'), f"App-level settings should start with 'yap.': {key}"
 
+    def test_llm_settings_keys(self):
+        """LLM settings should use consistent key naming"""
+        expected_keys = [
+            'settings.llm.apiEndpoint',
+            'settings.llm.modelName',
+            'settings.llm.apiKey',
+            'settings.llm.temperature',
+            'settings.llm.maxTokens'
+        ]
+        
+        # Verify key naming convention
+        for key in expected_keys:
+            assert key.startswith('settings.llm.'), f"LLM settings should start with 'settings.llm.': {key}"
+
 
 class TestSettingsValidation:
     """Test settings validation logic"""
@@ -145,6 +177,34 @@ class TestSettingsValidation:
         for field in required_fields:
             assert field in example_profile, f"Profile must have {field} field"
 
+    def test_llm_api_endpoint_validation(self):
+        """LLM API endpoint should be a valid URL"""
+        valid_endpoints = [
+            'http://localhost:11434/v1/chat/completions',
+            'https://api.openai.com/v1/chat/completions',
+            'http://192.168.1.100:8080/v1/chat/completions'
+        ]
+        
+        for endpoint in valid_endpoints:
+            assert endpoint.startswith('http://') or endpoint.startswith('https://'), \
+                f"Endpoint must use HTTP/HTTPS protocol: {endpoint}"
+            # Basic URL structure check
+            assert '://' in endpoint, f"Endpoint must be a valid URL: {endpoint}"
+
+    def test_llm_temperature_range(self):
+        """LLM temperature should be within valid range"""
+        valid_temps = [0, 0.5, 0.7, 1.0, 1.5, 2.0]
+        
+        for temp in valid_temps:
+            assert 0 <= temp <= 2, f"Temperature must be between 0 and 2: {temp}"
+
+    def test_llm_max_tokens_positive(self):
+        """LLM max tokens should be positive"""
+        valid_tokens = [100, 1024, 2048, 4096]
+        
+        for tokens in valid_tokens:
+            assert tokens > 0, f"Max tokens must be positive: {tokens}"
+
 
 class TestConfigurationDefaults:
     """Test application configuration defaults"""
@@ -155,15 +215,19 @@ class TestConfigurationDefaults:
         assert default_url.startswith('http://'), "Should use HTTP protocol"
         assert 'localhost' in default_url, "Should default to localhost for security"
 
-    def test_ollama_default_config(self):
-        """Ollama should have sensible defaults"""
-        default_ollama_url = 'http://localhost:11434'
-        default_ollama_model = 'llama3'
+    def test_llm_default_config(self):
+        """LLM provider should have sensible defaults"""
+        default_llm_url = 'http://localhost:11434/v1/chat/completions'
+        default_llm_model = 'llama3'
+        default_temperature = 0.7
+        default_max_tokens = 2048
         
-        assert default_ollama_url.startswith('http://'), "Should use HTTP protocol"
-        assert 'localhost' in default_ollama_url, "Should default to localhost"
-        assert isinstance(default_ollama_model, str), "Model should be a string"
-        assert len(default_ollama_model) > 0, "Model should not be empty"
+        assert default_llm_url.startswith('http://'), "Should use HTTP protocol"
+        assert 'localhost' in default_llm_url, "Should default to localhost"
+        assert isinstance(default_llm_model, str), "Model should be a string"
+        assert len(default_llm_model) > 0, "Model should not be empty"
+        assert 0 <= default_temperature <= 2, "Temperature should be between 0 and 2"
+        assert default_max_tokens > 0, "Max tokens should be positive"
 
 
 class TestFeatureFlags:

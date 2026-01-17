@@ -38,7 +38,7 @@ Yap provides a unified web application combining ASR (speech-to-text) and TTS (t
 |---------|-------------|---------|
 | **ASR** | Record audio and transcribe to text | OpenAI Whisper |
 | **TTS** | Convert text to natural speech | Piper TTS |
-| **Chat** | Voice conversations with LLMs | Ollama |
+| **Chat** | Voice/text conversations with LLMs | LLM Proxy Service |
 
 The application runs as Docker containers with a terminal-style dark UI, designed for private LAN use.
 
@@ -48,7 +48,8 @@ Yap uses a **single-domain architecture** where:
 - UI is served at `https://APP_DOMAIN/`
 - ASR API is routed at `https://APP_DOMAIN/asr/*`
 - TTS API is routed at `https://APP_DOMAIN/tts/*`
-- LLM Proxy is routed at `https://APP_DOMAIN/llm/*`
+- LLM API is routed at `https://APP_DOMAIN/api/llm/*`
+- Metrics API is routed at `https://APP_DOMAIN/api/metrics/*`
 
 This is achieved via Caddy labels (production) or nginx proxy (local mode).
 
@@ -78,19 +79,18 @@ This is achieved via Caddy labels (production) or nginx proxy (local mode).
 **See the [User Guide](docs/USER_GUIDE.md) for detailed TTS documentation.**
 
 ### Chat Tab
-- Voice-based conversations with local LLMs via Ollama
-- Record audio → transcribe → send to LLM workflow
-- Alternative text input mode for direct typing
-- Conversation history with message bubbles (user and assistant)
-- Markdown rendering in LLM responses (code blocks, formatting)
-- Export conversations to GitLab/GitHub as formatted transcripts
-- Persistent conversation storage (automatically saves)
-- Configurable model, temperature, and system prompts
-- Support for multiple Ollama models (llama3.2, gemma3, etc.)
+- **Voice messaging**: Record audio, transcribe, send to LLM
+- **Text messaging**: Type messages directly
+- Multiple LLM provider support (OpenWebUI, Ollama, OpenAI, etc.)
+- Conversation history with message bubbles
+- Audio playback in messages
+- Markdown rendering in LLM responses
+- **Export** conversations to GitLab, GitHub, SFTP, or webhooks
+- Configurable system prompts and temperature
+- Auto-send after transcription (optional)
+- Keyboard shortcut: Ctrl+Enter to send
 
-**Prerequisites**: Ollama must be installed and running (`ollama serve`)
-
-**See the [Chat Design Documentation](docs/CHAT_UI_DESIGN.md) for detailed Chat documentation.**
+**See the [Chat Design Documentation](docs/CHAT_DESIGN_README.md) for detailed Chat feature documentation.**
 
 ### Export
 - Export transcripts to **GitLab** or **GitHub** repositories (commit files directly)
@@ -112,6 +112,29 @@ This is achieved via Caddy labels (production) or nginx proxy (local mode).
 - When disabled, shows one-click enable button
 
 **See the [Data & Metrics Guide](docs/DATA.md) for complete documentation.**
+
+### LLM Proxy Service (Optional)
+- **Backend proxy service** for forwarding chat requests to LLM providers
+- Supports **OpenAI-compatible APIs** (OpenWebUI, Ollama, OpenAI, LocalAI, n8n, etc.)
+- **Authentication support** with API key configuration
+- **Configurable parameters**: model selection, temperature, max tokens, timeout
+- **Error handling**: Graceful handling of timeouts, connection errors, and provider errors
+- **Request logging**: All requests/responses logged for debugging
+- **Privacy-first**: LLM provider credentials stored server-side, never exposed to browser
+- Designed for the upcoming **Chat feature** (voice-to-LLM conversation interface)
+
+**Configuration:**
+```bash
+# Optional - only needed for chat feature
+LLM_PROVIDER_URL=http://localhost:11434  # Your LLM provider URL
+LLM_API_KEY=                             # Optional API key
+LLM_MODEL=gpt-3.5-turbo                  # Default model
+LLM_TIMEOUT=60                           # Request timeout in seconds
+LLM_MAX_TOKENS=2000                      # Max tokens in response
+LLM_TEMPERATURE=0.7                      # Sampling temperature
+```
+
+**See [services/yap-llm-proxy/README.md](services/yap-llm-proxy/README.md) for complete documentation.**
 
 ### Apps (Optional)
 > **Note**: The Apps ecosystem is disabled by default. Enable it by setting `enableApps: true` in `app/ui/config.js`.

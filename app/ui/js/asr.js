@@ -50,6 +50,15 @@ let mobileSettings = {
   lastExportTarget: null
 };
 
+// LLM settings (persisted)
+let llmSettings = {
+  apiEndpoint: 'http://localhost:11434/v1/chat/completions',
+  modelName: 'llama3',
+  apiKey: '',
+  temperature: 0.7,
+  maxTokens: 2048
+};
+
 // DOM elements (set in init)
 let elements = {};
 
@@ -80,6 +89,14 @@ function loadSettings() {
     lastExportTarget: util.storage.get('settings.mobile.lastExportTarget', null),
     preventRefresh: util.storage.get('settings.mobile.preventRefresh', true) // Default ON
   };
+  
+  llmSettings = {
+    apiEndpoint: util.storage.get('settings.llm.apiEndpoint', 'http://localhost:11434/v1/chat/completions'),
+    modelName: util.storage.get('settings.llm.modelName', 'llama3'),
+    apiKey: util.storage.get('settings.llm.apiKey', ''),
+    temperature: util.storage.get('settings.llm.temperature', 0.7),
+    maxTokens: util.storage.get('settings.llm.maxTokens', 2048)
+  };
 }
 
 // Save settings to localStorage
@@ -104,6 +121,77 @@ function saveMobileSettings() {
   util.storage.set('settings.mobile.preventRefresh', mobileSettings.preventRefresh);
 }
 
+function saveLLMSettings() {
+  util.storage.set('settings.llm.apiEndpoint', llmSettings.apiEndpoint);
+  util.storage.set('settings.llm.modelName', llmSettings.modelName);
+  util.storage.set('settings.llm.apiKey', llmSettings.apiKey);
+  util.storage.set('settings.llm.temperature', llmSettings.temperature);
+  util.storage.set('settings.llm.maxTokens', llmSettings.maxTokens);
+}
+
+// Validate URL format
+function isValidUrl(str) {
+  try {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// Validate LLM settings and show errors
+function validateLLMSettings(container) {
+  let isValid = true;
+  const errors = [];
+  
+  // Clear previous errors
+  container.querySelectorAll('.llm-error').forEach(el => el.remove());
+  
+  // Validate API endpoint
+  const endpoint = llmSettings.apiEndpoint.trim();
+  if (!endpoint) {
+    errors.push({ field: 'llmApiEndpoint', message: 'API endpoint is required' });
+    isValid = false;
+  } else if (!isValidUrl(endpoint)) {
+    errors.push({ field: 'llmApiEndpoint', message: 'Invalid URL format (must start with http:// or https://)' });
+    isValid = false;
+  }
+  
+  // Validate model name
+  if (!llmSettings.modelName.trim()) {
+    errors.push({ field: 'llmModelName', message: 'Model name is required' });
+    isValid = false;
+  }
+  
+  // Validate temperature
+  const temp = parseFloat(llmSettings.temperature);
+  if (isNaN(temp) || temp < 0 || temp > 2) {
+    errors.push({ field: 'llmTemperature', message: 'Temperature must be between 0 and 2' });
+    isValid = false;
+  }
+  
+  // Validate maxTokens
+  const tokens = parseInt(llmSettings.maxTokens);
+  if (isNaN(tokens) || tokens < 1) {
+    errors.push({ field: 'llmMaxTokens', message: 'Max tokens must be a positive number' });
+    isValid = false;
+  }
+  
+  // Display errors
+  errors.forEach(error => {
+    const input = container.querySelector(`#${error.field}`);
+    if (input) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'llm-error';
+      errorDiv.style.cssText = 'color: var(--error); font-size: 0.7rem; margin-top: 0.25rem;';
+      errorDiv.textContent = error.message;
+      input.parentElement.appendChild(errorDiv);
+    }
+  });
+  
+  return isValid;
+}
+
 // Format transcript text for display/copy based on settings
 function formatTranscript(text) {
   let result = text;
@@ -122,6 +210,11 @@ function formatTranscript(text) {
   result = util.cleanupText(result, transcriptSettings.cleanLineBreaks, transcriptSettings.lineBreakMode);
   
   return result;
+}
+
+// Get LLM settings (exposed as public API)
+function getLLMSettings() {
+  return { ...llmSettings };
 }
 
 // Get combined transcript text based on settings
@@ -809,6 +902,11 @@ function openSettingsPanel() {
     const enableToolbarChecked = mobileSettings.enableMobileToolbar === null ? '' : (mobileSettings.enableMobileToolbar ? 'checked' : '');
     const toolbarDisabled = mobileSettings.enableMobileToolbar === null;
     
+    // Load chat settings
+    const chatSystemPrompt = util.storage.get('settings.chat.systemPrompt', 'You are a helpful assistant.');
+    const chatAutoSend = util.storage.get('settings.chat.autoSend', false);
+    const chatMarkdownEnabled = util.storage.get('settings.chat.markdownEnabled', true);
+    
     // Build mic options HTML
     let micOptionsHtml = '<option value="">Default microphone</option>';
     if (hasLabels && devices.length > 0) {
@@ -884,6 +982,60 @@ function openSettingsPanel() {
           <span style="font-size: 0.8rem; color: var(--text-primary);">Metrics tracking status (view only)</span>
         </div>
         <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2.8rem;">Server-side SQLite storage • Click for configuration info • Max 5000 events, 30 days retention</span>
+      </div>
+      
+      <div class="settings-section-title">Chat/LLM Provider</div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="margin-bottom: 0.5rem; font-size: 0.8rem;">API Endpoint URL</label>
+        <input type="text" id="llmApiEndpoint" class="formatting-select" style="width: 100%; font-size: 0.8rem;" value="${llmSettings.apiEndpoint}" placeholder="http://localhost:11434/v1/chat/completions">
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">OpenAI-compatible endpoint (e.g., Ollama, LM Studio)</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="margin-bottom: 0.5rem; font-size: 0.8rem;">Model Name</label>
+        <input type="text" id="llmModelName" class="formatting-select" style="width: 100%; font-size: 0.8rem;" value="${llmSettings.modelName}" placeholder="llama3">
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Model identifier (e.g., llama3, gpt-4, mistral)</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="margin-bottom: 0.5rem; font-size: 0.8rem;">API Key/Token (Optional)</label>
+        <input type="password" id="llmApiKey" class="formatting-select" style="width: 100%; font-size: 0.8rem;" value="${llmSettings.apiKey}" placeholder="Leave empty for local models">
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Required for cloud APIs (OpenAI, Anthropic, etc.)</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="margin-bottom: 0.5rem; font-size: 0.8rem;">Temperature (0-2)</label>
+        <input type="number" id="llmTemperature" class="formatting-select" style="width: 100%; font-size: 0.8rem;" value="${llmSettings.temperature}" min="0" max="2" step="0.1">
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Controls randomness (0 = focused, 2 = creative)</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="margin-bottom: 0.5rem; font-size: 0.8rem;">Max Tokens</label>
+        <input type="number" id="llmMaxTokens" class="formatting-select" style="width: 100%; font-size: 0.8rem;" value="${llmSettings.maxTokens}" min="1" step="1">
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Maximum response length (tokens)</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label style="margin-bottom: 0.5rem; font-size: 0.8rem;">System Prompt</label>
+        <textarea id="chatSystemPrompt" class="transcript-area" style="min-height: 80px; width: 100%; font-size: 0.8rem;" placeholder="You are a helpful assistant.">${chatSystemPrompt}</textarea>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Instructions for the LLM's behavior</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch ${chatAutoSend ? 'active' : ''}" id="settingChatAutoSend"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">Auto-send after transcription</span>
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Automatically send to LLM after voice transcription</span>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <div class="toggle-container">
+          <div class="toggle-switch ${chatMarkdownEnabled ? 'active' : ''}" id="settingChatMarkdown"></div>
+          <span style="font-size: 0.8rem; color: var(--text-primary);">Render markdown in responses</span>
+        </div>
+        <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Display formatted code blocks and emphasis</span>
       </div>
       
       <div class="settings-section-title">Behavior</div>
@@ -1048,6 +1200,102 @@ function openSettingsPanel() {
       metricsToggle.addEventListener('click', function() {
         // Since metrics are now server-side, show info message
         alert('Metrics are controlled by the METRICS_ENABLED environment variable in your docker-compose.yml.\n\nCurrent status: ' + (metricsEnabled ? 'Enabled' : 'Disabled') + '\n\nTo change: Update METRICS_ENABLED in app/.env or docker-compose.yml and restart the yap-metrics service.');
+      });
+    }
+    
+    // Event handlers - LLM Settings
+    const llmApiEndpointInput = container.querySelector('#llmApiEndpoint');
+    const llmModelNameInput = container.querySelector('#llmModelName');
+    const llmApiKeyInput = container.querySelector('#llmApiKey');
+    const llmTemperatureInput = container.querySelector('#llmTemperature');
+    const llmMaxTokensInput = container.querySelector('#llmMaxTokens');
+    
+    if (llmApiEndpointInput) {
+      llmApiEndpointInput.addEventListener('blur', function() {
+        llmSettings.apiEndpoint = this.value.trim();
+        if (validateLLMSettings(container)) {
+          saveLLMSettings();
+          showMessage('LLM settings saved', 'success');
+        }
+      });
+    }
+    
+    if (llmModelNameInput) {
+      llmModelNameInput.addEventListener('blur', function() {
+        llmSettings.modelName = this.value.trim();
+        if (validateLLMSettings(container)) {
+          saveLLMSettings();
+          showMessage('LLM settings saved', 'success');
+        }
+      });
+    }
+    
+    if (llmApiKeyInput) {
+      llmApiKeyInput.addEventListener('blur', function() {
+        // API key is optional and doesn't require validation
+        // (empty string is valid for local models like Ollama)
+        llmSettings.apiKey = this.value.trim();
+        saveLLMSettings();
+        showMessage('LLM settings saved', 'success');
+      });
+    }
+    
+    if (llmTemperatureInput) {
+      llmTemperatureInput.addEventListener('blur', function() {
+        const temp = parseFloat(this.value);
+        if (!isNaN(temp)) {
+          llmSettings.temperature = temp;
+          if (validateLLMSettings(container)) {
+            saveLLMSettings();
+            showMessage('LLM settings saved', 'success');
+          }
+        } else {
+          validateLLMSettings(container);
+        }
+      });
+    }
+    
+    if (llmMaxTokensInput) {
+      llmMaxTokensInput.addEventListener('blur', function() {
+        const tokens = parseInt(this.value);
+        if (!isNaN(tokens)) {
+          llmSettings.maxTokens = tokens;
+          if (validateLLMSettings(container)) {
+            saveLLMSettings();
+            showMessage('LLM settings saved', 'success');
+          }
+        } else {
+          validateLLMSettings(container);
+        }
+      });
+    }
+    
+    // Event handlers - Chat settings
+    const chatSystemPromptInput = container.querySelector('#chatSystemPrompt');
+    if (chatSystemPromptInput) {
+      chatSystemPromptInput.addEventListener('blur', function() {
+        util.storage.set('settings.chat.systemPrompt', this.value.trim());
+        showMessage('Chat settings saved', 'success');
+      });
+    }
+    
+    const settingChatAutoSend = container.querySelector('#settingChatAutoSend');
+    if (settingChatAutoSend) {
+      settingChatAutoSend.addEventListener('click', function() {
+        const newValue = !util.storage.get('settings.chat.autoSend', false);
+        util.storage.set('settings.chat.autoSend', newValue);
+        this.classList.toggle('active', newValue);
+        showMessage('Chat settings saved', 'success');
+      });
+    }
+    
+    const settingChatMarkdown = container.querySelector('#settingChatMarkdown');
+    if (settingChatMarkdown) {
+      settingChatMarkdown.addEventListener('click', function() {
+        const newValue = !util.storage.get('settings.chat.markdownEnabled', true);
+        util.storage.set('settings.chat.markdownEnabled', newValue);
+        this.classList.toggle('active', newValue);
+        showMessage('Chat settings saved', 'success');
       });
     }
     
@@ -1485,9 +1733,10 @@ export async function init(container) {
       }
     },
     getClips: () => clips.slice(),
-    openSettings: openSettingsPanel
+    openSettings: openSettingsPanel,
+    getLLMSettings
   };
 }
 
 export { openSettingsPanel };
-export const asr = { init, isRecording, openSettingsPanel };
+export const asr = { init, isRecording, openSettingsPanel, getLLMSettings };

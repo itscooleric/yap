@@ -195,96 +195,43 @@
 
       <!-- Chat Tab -->
       <div id="chat-tab" class="tab-content">
-        <div class="panel chat-header">
-          <div class="panel-header">
-            Chat
-            <span class="message-count-badge" id="chatMessageCount">0</span>
-          </div>
-          <div class="chat-header-actions">
-            <button id="chatClearBtn" class="small danger">Clear Chat</button>
-            <button id="chatExportBtn" class="small">Export</button>
-          </div>
-        </div>
-
         <div class="panel">
-          <div class="panel-header">Messages</div>
-          <div class="chat-messages" id="chatMessagesList">
-            <div class="chat-empty-state">
-              <div class="chat-empty-icon">💬</div>
-              <div class="chat-empty-title">No messages yet</div>
-              <div class="chat-empty-subtitle">
-                Record audio or type a message to start<br>
-                a conversation with the LLM
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel chat-input-panel">
-          <div class="panel-header">New Message</div>
+          <div class="panel-header">Chat Conversation</div>
           
           <div class="status-bar">
             <div class="status">
               <span class="status-dot" id="chatStatusDot"></span>
-              <span id="chatStatusText">Idle</span>
-            </div>
-            <div class="timer" id="chatTimer">00:00</div>
-          </div>
-          
-          <div class="chat-input-mode-toggle">
-            <button class="mode-toggle-btn active" data-mode="audio" id="chatModeAudio">
-              🎤 Audio
-            </button>
-            <button class="mode-toggle-btn" data-mode="text" id="chatModeText">
-              ⌨ Text
-            </button>
-          </div>
-          
-          <!-- Audio mode content -->
-          <div class="chat-audio-mode" id="chatAudioMode">
-            <!-- Waveform (during recording) -->
-            <div class="waveform-container" style="display: none;">
-              <canvas id="chatWaveform"></canvas>
-            </div>
-            
-            <!-- Audio preview (after recording) -->
-            <div class="chat-audio-preview" id="chatAudioPreview" style="display: none;">
-              <div class="audio-info">
-                <span class="audio-icon">🔊</span>
-                <span class="audio-filename" id="chatAudioFilename">-</span>
-                <span class="audio-duration" id="chatAudioDuration">-</span>
-              </div>
-              <audio id="chatAudioPlayer" controls></audio>
-              
-              <!-- Transcript -->
-              <div class="chat-transcript-box">
-                <textarea id="chatTranscript" class="transcript-area" 
-                          placeholder="Transcript will appear here..."></textarea>
-              </div>
+              <span id="chatStatusText">Ready</span>
             </div>
           </div>
           
-          <!-- Text mode content -->
-          <div class="chat-text-mode" id="chatTextMode" style="display: none;">
-            <textarea id="chatTextInput" class="text-input" 
-                      placeholder="Type your message here..."></textarea>
-            <div class="char-count">
-              <span id="chatCharCount">0</span> / 10000 characters
-            </div>
+          <div class="chat-messages-container" id="chatMessagesContainer">
+            <div class="no-messages">No messages yet. Record or type to start a conversation.</div>
           </div>
           
-          <!-- Action buttons -->
-          <div class="controls chat-input-controls">
-            <!-- Audio mode buttons -->
-            <div class="audio-controls" id="chatAudioControls">
-              <button id="chatRecordBtn" class="primary">🎤 Record</button>
-              <button id="chatTranscribeBtn" disabled>Transcribe</button>
-              <button id="chatRerecordBtn" disabled>Re-record</button>
-            </div>
-            
-            <!-- Common buttons -->
-            <button id="chatSendBtn" class="primary" disabled>🚀 Send to LLM</button>
-            <button id="chatClearInputBtn">Clear</button>
+          <div class="chat-selection-controls">
+            <button id="chatSelectAllBtn" class="small">Select All</button>
+            <button id="chatClearSelectBtn" class="small">Clear Selection</button>
+          </div>
+        </div>
+        
+        <div class="panel">
+          <div class="panel-header">Send Message</div>
+          
+          <div class="form-group">
+            <textarea id="chatTextInput" class="text-input" placeholder="Type your message here..." rows="4"></textarea>
+          </div>
+          
+          <div class="controls">
+            <button id="chatSendBtn" class="primary" disabled>Send</button>
+            <button id="chatRecordBtn" class="secondary">Record</button>
+          </div>
+          
+          <div class="output-controls">
+            <button id="chatCopyBtn" disabled title="Copy entire conversation">Copy All</button>
+            <button id="chatExportBtn" disabled title="Export to GitLab/GitHub">Export</button>
+            <button id="chatClearBtn" disabled title="Clear conversation">Clear</button>
+            <button id="chatSettingsBtn" class="small" title="Chat settings">⚙ Settings</button>
           </div>
         </div>
       </div>

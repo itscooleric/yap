@@ -12,6 +12,7 @@ import { metrics } from './metrics.js';
 let activeTab = 'asr';
 let asrEnabled = true;
 let ttsEnabled = true;
+let chatEnabled = true;
 
 // Tab elements
 const tabs = {
@@ -215,7 +216,7 @@ async function init() {
   
   // Initialize Chat
   if (tabs.chat) {
-    chat.init();
+    await chat.init(tabs.chat);
   }
   
   // Initialize Data/Metrics tab

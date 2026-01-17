@@ -61,11 +61,11 @@ services:
       caddy.11_@metrics.path: /api/metrics /api/metrics/*
       caddy.12_reverse_proxy: "@metrics yap-metrics:8091"
       
-      # LLM Proxy API routing - proxy to llm-proxy
-      caddy.13_@llm.path: /llm /llm/*
+      # LLM API routing - proxy to yap-llm-proxy
+      caddy.13_@llm.path: /api/llm /api/llm/*
       caddy.14_handle: "@llm"
-      caddy.14_handle.uri: "strip_prefix /llm"
-      caddy.14_handle.reverse_proxy: "llm-proxy:8000"
+      caddy.14_handle.uri: "strip_prefix /api/llm"
+      caddy.14_handle.reverse_proxy: "yap-llm-proxy:8092"
       
       # Default: serve static UI
       caddy.15_reverse_proxy: "{{upstreams 80}}"
@@ -136,20 +136,21 @@ services:
       start_period: 10s
 
   # LLM Proxy Service
-  llm-proxy:
+  yap-llm-proxy:
     build:
-      context: ../services/llm-proxy
+      context: ../services/yap-llm-proxy
       dockerfile: Dockerfile
     container_name: yap-llm-proxy
     restart: unless-stopped
     networks: [caddy]
     environment:
-      - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
-      - DEFAULT_MODEL=${DEFAULT_MODEL:-llama3.2}
-      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-120}
+      - LLM_PROVIDER_URL=${LLM_PROVIDER_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-llama3}
+      - LLM_TIMEOUT=${LLM_TIMEOUT:-60}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:*,https://localhost:*}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8092/health"]
       interval: 30s
       timeout: 10s
       retries: 3
