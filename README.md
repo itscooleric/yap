@@ -1,34 +1,31 @@
 # Yap
 
 ```
-  ╦ ╦╔═╗╔═╗
-  ╚╦╝╠═╣╠═╝
-   ╩ ╩ ╩╩
 
-  local-first speech I/O
+  ██    ██  █████  ██████
+   ██  ██  ██   ██ ██   ██
+    ████   ███████ ██████
+     ██    ██   ██ ██
+     ██    ██   ██ ██
 
-  ┌──────────────────────────────────────────┐
-  │                                          │
-  │   🎙️  mic ──► whisper ──► transcript     │
-  │                              │            │
-  │                              ▼            │
-  │                         ┌────────┐       │
-  │                         │ export │       │
-  │                         │ gitlab │       │
-  │                         │ github │       │
-  │                         │  sftp  │       │
-  │                         └────────┘       │
-  │                              │            │
-  │                              ▼            │
-  │   🔊  speaker ◄── piper ◄── text         │
-  │                                          │
-  └──────────────────────────────────────────┘
+  local-first speech I/O        v1
+  ─────────────────────────────────
 
-  whisper (ASR) + piper (TTS) · docker · LAN-only
-  no data leaves your server
+  mic ───► whisper ───► transcript
+                            │
+                        export to
+                     gitlab | github
+                      sftp  | webhook
+                            │
+  speaker ◄─── piper ◄──── text
+
+  ─────────────────────────────────
+  all processing on your hardware.
+  no data leaves your server.
+
 ```
 
-Local-first speech I/O stack — privacy-preserving transcription, synthesis, and export hooks into structured workflows. All processing stays on your hardware.
+Local-first speech I/O stack — privacy-preserving transcription, synthesis, and export hooks into structured workflows.
 
 ---
 
