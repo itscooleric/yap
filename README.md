@@ -1,17 +1,34 @@
 # Yap
 
 ```
-        /\  __  /\
-       /  \/  \/  \
-      |   (o)(o)   |
-       \    __    /
-        \  /__\  /
-         --------
+  ╦ ╦╔═╗╔═╗
+  ╚╦╝╠═╣╠═╝
+   ╩ ╩ ╩╩
+
+  local-first speech I/O
+
+  ┌──────────────────────────────────────────┐
+  │                                          │
+  │   🎙️  mic ──► whisper ──► transcript     │
+  │                              │            │
+  │                              ▼            │
+  │                         ┌────────┐       │
+  │                         │ export │       │
+  │                         │ gitlab │       │
+  │                         │ github │       │
+  │                         │  sftp  │       │
+  │                         └────────┘       │
+  │                              │            │
+  │                              ▼            │
+  │   🔊  speaker ◄── piper ◄── text         │
+  │                                          │
+  └──────────────────────────────────────────┘
+
+  whisper (ASR) + piper (TTS) · docker · LAN-only
+  no data leaves your server
 ```
 
-**Local speech tools**
-
-Local LAN web tools for speech-to-text (ASR) and text-to-speech (TTS).
+Local-first speech I/O stack — privacy-preserving transcription, synthesis, and export hooks into structured workflows. All processing stays on your hardware.
 
 ---
 
